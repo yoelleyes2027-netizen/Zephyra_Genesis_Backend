@@ -4,6 +4,7 @@ import com.zephyra.genesis.dto.AuthUserResponse;
 import com.zephyra.genesis.dto.LoginRequest;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -23,25 +24,25 @@ public class AdminSystemAuthService {
 
     private final DataSource adminDataSource;
     private final PasswordEncoder passwordEncoder;
-    private final String bootstrapUrl;
-    private final String bootstrapUsername;
-    private final String bootstrapPassword;
+    private final String primaryUrl;
+    private final String primaryUsername;
+    private final String primaryPassword;
     private final int adminCedula;
     private final String adminPassword;
 
     public AdminSystemAuthService(
-            DataSource adminDataSource,
+            @Qualifier("adminDataSource") DataSource adminDataSource,
             PasswordEncoder passwordEncoder,
-            @Value("${spring.admin-datasource.bootstrap-url}") String bootstrapUrl,
-            @Value("${spring.admin-datasource.bootstrap-username}") String bootstrapUsername,
-            @Value("${spring.admin-datasource.bootstrap-password}") String bootstrapPassword,
+            @Value("${spring.datasource.url}") String primaryUrl,
+            @Value("${spring.datasource.username}") String primaryUsername,
+            @Value("${spring.datasource.password}") String primaryPassword,
             @Value("${app.admin-system.cedula:" + DEFAULT_ADMIN_CEDULA + "}") int adminCedula,
             @Value("${app.admin-system.password:" + DEFAULT_ADMIN_PASSWORD + "}") String adminPassword) {
         this.adminDataSource = adminDataSource;
         this.passwordEncoder = passwordEncoder;
-        this.bootstrapUrl = bootstrapUrl;
-        this.bootstrapUsername = bootstrapUsername;
-        this.bootstrapPassword = bootstrapPassword;
+        this.primaryUrl = primaryUrl;
+        this.primaryUsername = primaryUsername;
+        this.primaryPassword = primaryPassword;
         this.adminCedula = adminCedula;
         this.adminPassword = adminPassword;
     }
@@ -73,7 +74,8 @@ public class AdminSystemAuthService {
             return;
         }
 
-        try (Connection connection = java.sql.DriverManager.getConnection(bootstrapUrl, bootstrapUsername, bootstrapPassword);
+        String bootstrapUrl = buildProbeUrl(primaryUrl, "postgres");
+        try (Connection connection = java.sql.DriverManager.getConnection(bootstrapUrl, primaryUsername, primaryPassword);
              Statement statement = connection.createStatement()) {
             statement.executeUpdate("CREATE DATABASE zephyra_admins");
         } catch (SQLException ex) {
@@ -82,8 +84,8 @@ public class AdminSystemAuthService {
     }
 
     private boolean databaseExists() {
-        String probeUrl = buildProbeUrl();
-        try (Connection connection = java.sql.DriverManager.getConnection(probeUrl, bootstrapUsername, bootstrapPassword);
+        String probeUrl = buildProbeUrl(primaryUrl, "postgres");
+        try (Connection connection = java.sql.DriverManager.getConnection(probeUrl, primaryUsername, primaryPassword);
              PreparedStatement statement = connection.prepareStatement("SELECT 1 FROM pg_database WHERE datname = 'zephyra_admins'")) {
             try (ResultSet resultSet = statement.executeQuery()) {
                 return resultSet.next();
@@ -93,15 +95,15 @@ public class AdminSystemAuthService {
         }
     }
 
-    private String buildProbeUrl() {
-        int queryIndex = bootstrapUrl.indexOf('?');
-        String urlWithoutQuery = queryIndex >= 0 ? bootstrapUrl.substring(0, queryIndex) : bootstrapUrl;
-        String query = queryIndex >= 0 ? bootstrapUrl.substring(queryIndex) : "";
+    private String buildProbeUrl(String jdbcUrl, String databaseName) {
+        int queryIndex = jdbcUrl.indexOf('?');
+        String urlWithoutQuery = queryIndex >= 0 ? jdbcUrl.substring(0, queryIndex) : jdbcUrl;
+        String query = queryIndex >= 0 ? jdbcUrl.substring(queryIndex) : "";
         int lastSlash = urlWithoutQuery.lastIndexOf('/');
         if (lastSlash < 0) {
             throw new IllegalStateException("La URL de bootstrap de PostgreSQL no es válida.");
         }
-        return urlWithoutQuery.substring(0, lastSlash + 1) + "postgres" + query;
+        return urlWithoutQuery.substring(0, lastSlash + 1) + databaseName + query;
     }
 
     private void ensureTableExists() {
