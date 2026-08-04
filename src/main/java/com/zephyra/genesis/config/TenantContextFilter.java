@@ -7,6 +7,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -16,10 +17,10 @@ import java.io.IOException;
 public class TenantContextFilter extends OncePerRequestFilter {
 
     private static final String TOKEN_COOKIE = "token";
-    private final JwtService jwtService;
+    private final ObjectProvider<JwtService> jwtServiceProvider;
 
-    public TenantContextFilter(JwtService jwtService) {
-        this.jwtService = jwtService;
+    public TenantContextFilter(ObjectProvider<JwtService> jwtServiceProvider) {
+        this.jwtServiceProvider = jwtServiceProvider;
     }
 
     @Override
@@ -47,6 +48,12 @@ public class TenantContextFilter extends OncePerRequestFilter {
     }
 
     private void applyTenantFromToken(HttpServletRequest request) {
+        JwtService jwtService = jwtServiceProvider.getIfAvailable();
+        if (jwtService == null) {
+            TenantContextHolder.setMaster();
+            return;
+        }
+
         String token = resolveToken(request);
         if (token == null || token.isBlank() || !jwtService.isValid(token)) {
             TenantContextHolder.setMaster();
