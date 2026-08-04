@@ -33,7 +33,7 @@ public class ProductoEntity {
     @Column(nullable = false)
     private float precioCompra;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String descripcion;
 
     @Column(nullable = false)
