@@ -1,0 +1,71 @@
+name: Backend Deploy to ECR
+
+on:
+  workflow_run:
+    workflows:
+      - Backend Test
+    branches:
+      - main
+    types:
+      - completed
+
+permissions:
+  contents: read
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  ECR_REGISTRY: 316388238667.dkr.ecr.us-east-1.amazonaws.com
+  ECR_REPOSITORY: genesis/backend
+
+jobs:
+  deploy:
+    name: Build and push backend image
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Get runner public IP
+        id: runner_ip
+        run: echo "ip=$(curl -s https://checkip.amazonaws.com)" >> "$GITHUB_OUTPUT"
+
+      - name: Allow temporary SSH access from runner
+        run: |
+          aws ec2 authorize-security-group-ingress \
+            --group-id "${{ secrets.EC2_SECURITY_GROUP_ID }}" \
+            --ip-permissions "IpProtocol=tcp,FromPort=22,ToPort=22,IpRanges=[{CidrIp=${{ steps.runner_ip.outputs.ip }}/32,Description='GitHub Actions runner SSH'}]" || true
+
+      - name: Build, tag, and push image
+        run: |
+          IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY"
+          docker build -t "$IMAGE_URI:latest" .
+          docker push "$IMAGE_URI:latest"
+
+      - name: Deploy backend on EC2
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$EC2_SSH_PRIVATE_KEY" > ~/.ssh/zephyra_ec2.pem
+          chmod 600 ~/.ssh/zephyra_ec2.pem
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/zephyra_ec2.pem ec2-user@"$EC2_HOST" "cd /home/ec2-user/zephyra && sudo docker-compose pull backend && sudo docker-compose up -d backend"
+
+      - name: Revoke temporary SSH access
+        if: always()
+        run: |
+          aws ec2 revoke-security-group-ingress \
+            --group-id "${{ secrets.EC2_SECURITY_GROUP_ID }}" \
+            --ip-permissions "IpProtocol=tcp,FromPort=22,ToPort=22,IpRanges=[{CidrIp=${{ steps.runner_ip.outputs.ip }}/32}]" || true

@@ -1,0 +1,30 @@
+services:
+  backend:
+    image: 316388238667.dkr.ecr.us-east-1.amazonaws.com/genesis/backend:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      SERVER_PORT: 8080
+      DB_URL: ${DB_URL}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      AWS_REGION: ${AWS_REGION}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION_MINUTES: ${JWT_EXPIRATION_MINUTES}
+    ports:
+      - "8080:8080"
+
+  frontend:
+    image: 316388238667.dkr.ecr.us-east-1.amazonaws.com/genesis/frontend:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      PORT: 3001
+      BACKEND_API_URL: http://backend:8080
+    depends_on:
+      - backend
+    ports:
+      - "3001:3001"
