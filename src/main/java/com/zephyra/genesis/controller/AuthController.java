@@ -8,6 +8,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CookieValue;
@@ -38,16 +39,29 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
-        AuthService.AuthResult result = authService.login(request);
-        return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, buildTokenCookie(result.token()).toString())
-                .body(java.util.Map.of("ok", true, "user", result.user()));
+        try {
+            AuthService.AuthResult result = authService.login(request);
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.SET_COOKIE, buildTokenCookie(result.token()).toString())
+                    .body(java.util.Map.of("ok", true, "user", result.user()));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(java.util.Map.of("ok", false, "msg", ex.getMessage()));
+        } catch (IllegalStateException ex) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(java.util.Map.of("ok", false, "msg", ex.getMessage()));
+        }
     }
 
     @GetMapping("/verificar-token")
     public ResponseEntity<?> verificarToken(@CookieValue(value = TOKEN_COOKIE, required = false) String token) {
-        AuthUserResponse usuario = authService.validarToken(token);
-        return ResponseEntity.ok(java.util.Map.of("ok", true, "usuario", usuario));
+        try {
+            AuthUserResponse usuario = authService.validarToken(token);
+            return ResponseEntity.ok(java.util.Map.of("ok", true, "usuario", usuario));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(java.util.Map.of("ok", false, "msg", ex.getMessage()));
+        }
     }
 
     @PostMapping("/logout")

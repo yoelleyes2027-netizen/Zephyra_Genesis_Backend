@@ -120,16 +120,22 @@ public class AdminSystemAuthService {
     }
 
     private void ensureSeedAdminExists() {
-        if (findAdminByCedula(adminCedula).isPresent()) {
-            return;
-        }
-
         String encodedPassword = passwordEncoder.encode(adminPassword);
-        try (Connection connection = adminDataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("INSERT INTO admin (cedula, password) VALUES (?, ?)", Statement.RETURN_GENERATED_KEYS)) {
-            statement.setInt(1, adminCedula);
-            statement.setString(2, encodedPassword);
-            statement.executeUpdate();
+        try (Connection connection = adminDataSource.getConnection()) {
+            if (findAdminByCedula(adminCedula).isPresent()) {
+                try (PreparedStatement statement = connection.prepareStatement("UPDATE admin SET password = ? WHERE cedula = ?")) {
+                    statement.setString(1, encodedPassword);
+                    statement.setInt(2, adminCedula);
+                    statement.executeUpdate();
+                }
+                return;
+            }
+
+            try (PreparedStatement statement = connection.prepareStatement("INSERT INTO admin (cedula, password) VALUES (?, ?)", Statement.RETURN_GENERATED_KEYS)) {
+                statement.setInt(1, adminCedula);
+                statement.setString(2, encodedPassword);
+                statement.executeUpdate();
+            }
         } catch (SQLException ex) {
             throw new IllegalStateException("No se pudo crear el admin de sistema inicial.", ex);
         }
