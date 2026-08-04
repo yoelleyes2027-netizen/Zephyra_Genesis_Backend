@@ -17,6 +17,9 @@ public class UsuarioEntity extends PersonaEntity {
     @Column(nullable = false)
     private ROL rol;
 
+    @Column(name = "tenant_database")
+    private String tenantDatabase;
+
     @Lob
     @Column(name = "foto_perfil")
     private byte[] fotoPerfil;
@@ -68,6 +71,14 @@ public class UsuarioEntity extends PersonaEntity {
 
     public void setRol(ROL rol) {
         this.rol = rol;
+    }
+
+    public String getTenantDatabase() {
+        return tenantDatabase;
+    }
+
+    public void setTenantDatabase(String tenantDatabase) {
+        this.tenantDatabase = tenantDatabase;
     }
 
     public byte[] getFotoPerfil() {

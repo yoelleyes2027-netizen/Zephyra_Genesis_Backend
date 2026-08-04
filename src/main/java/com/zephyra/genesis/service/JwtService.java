@@ -33,6 +33,7 @@ public class JwtService {
                 .claim("cedula", usuario.getCedula())
                 .claim("rol", Optional.ofNullable(usuario.getRol()).map(Enum::name).map(String::toLowerCase).orElse(""))
                 .claim("nombre", usuario.getName())
+                .claim("tenantDatabase", usuario.getTenantDatabase())
                 .issuedAt(new Date())
                 .expiration(Date.from(Instant.now().plus(expirationMinutes, ChronoUnit.MINUTES)))
                 .signWith(secretKey, SignatureAlgorithm.HS256)

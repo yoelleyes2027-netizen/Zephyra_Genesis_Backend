@@ -74,13 +74,14 @@ public class AuthService {
         String nombre = claims.get("nombre", String.class);
         String rol = claims.get("rol", String.class);
         Integer cedula = claims.get("cedula", Integer.class);
-        return new AuthUserResponse(id, nombre, rol, cedula != null ? cedula : 0);
+        String tenantDatabase = claims.get("tenantDatabase", String.class);
+        return new AuthUserResponse(id, nombre, rol, cedula != null ? cedula : 0, tenantDatabase);
     }
 
     private AuthUserResponse toResponse(UsuarioEntity usuario) {
         String nombre = usuario.getName() != null ? usuario.getName() : "";
         String rol = usuario.getRol() != null ? usuario.getRol().name().toLowerCase() : "";
-        return new AuthUserResponse(usuario.getId(), nombre, rol, usuario.getCedula());
+        return new AuthUserResponse(usuario.getId(), nombre, rol, usuario.getCedula(), usuario.getTenantDatabase());
     }
 
     public record AuthResult(String token, AuthUserResponse user) {
