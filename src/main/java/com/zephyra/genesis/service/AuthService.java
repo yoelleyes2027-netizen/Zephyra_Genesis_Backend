@@ -19,11 +19,13 @@ public class AuthService {
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final AdminSystemAuthService adminSystemAuthService;
 
-    public AuthService(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder, JwtService jwtService) {
+    public AuthService(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder, JwtService jwtService, AdminSystemAuthService adminSystemAuthService) {
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.adminSystemAuthService = adminSystemAuthService;
     }
 
     @Transactional
@@ -54,6 +56,12 @@ public class AuthService {
     }
 
     public AuthResult login(LoginRequest request) {
+        var adminResult = adminSystemAuthService.tryAuthenticate(request);
+        if (adminResult.isPresent()) {
+            AuthUserResponse adminUser = adminResult.get();
+            return new AuthResult(jwtService.generateToken(adminUser), adminUser);
+        }
+
         UsuarioEntity usuario = usuarioRepository.findByCedula(request.cedula())
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado."));
 

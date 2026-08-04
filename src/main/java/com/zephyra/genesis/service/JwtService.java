@@ -1,6 +1,7 @@
 package com.zephyra.genesis.service;
 
 import com.zephyra.genesis.entity.UsuarioEntity;
+import com.zephyra.genesis.dto.AuthUserResponse;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
@@ -28,12 +29,25 @@ public class JwtService {
     }
 
     public String generateToken(UsuarioEntity usuario) {
+        return generateToken(
+                usuario.getId(),
+                usuario.getCedula(),
+                usuario.getName(),
+                Optional.ofNullable(usuario.getRol()).map(Enum::name).map(String::toLowerCase).orElse(""),
+                usuario.getTenantDatabase());
+    }
+
+    public String generateToken(AuthUserResponse user) {
+        return generateToken(user.id(), user.cedula(), user.nombre(), user.rol(), user.tenantDatabase());
+    }
+
+    public String generateToken(Long id, int cedula, String nombre, String rol, String tenantDatabase) {
         return Jwts.builder()
-                .subject(String.valueOf(usuario.getId()))
-                .claim("cedula", usuario.getCedula())
-                .claim("rol", Optional.ofNullable(usuario.getRol()).map(Enum::name).map(String::toLowerCase).orElse(""))
-                .claim("nombre", usuario.getName())
-                .claim("tenantDatabase", usuario.getTenantDatabase())
+                .subject(String.valueOf(id))
+                .claim("cedula", cedula)
+                .claim("rol", rol != null ? rol : "")
+                .claim("nombre", nombre)
+                .claim("tenantDatabase", tenantDatabase)
                 .issuedAt(new Date())
                 .expiration(Date.from(Instant.now().plus(expirationMinutes, ChronoUnit.MINUTES)))
                 .signWith(secretKey, SignatureAlgorithm.HS256)
