@@ -39,6 +39,7 @@ public class TenantDatabaseProvisioningService {
             createTenantDatabase(tenantDatabase);
         }
         initializeSchema(tenantDatabase);
+        normalizePersonaFechaCreacionColumn(tenantDatabase);
     }
 
     public void upsertUsuario(String tenantDatabase, UsuarioEntity usuario) {
@@ -158,7 +159,7 @@ public class TenantDatabaseProvisioningService {
 
     private void insertPersona(Connection connection, UsuarioEntity usuario) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement(
-                "INSERT INTO persona (id, name, email, telefono, fechacreacion) VALUES (?, ?, ?, ?, ?)" );) {
+                "INSERT INTO persona (id, name, email, telefono, fecha_creacion) VALUES (?, ?, ?, ?, ?)" );) {
             statement.setLong(1, usuario.getId());
             statement.setString(2, usuario.getName());
             statement.setString(3, usuario.getEmail());
@@ -170,13 +171,48 @@ public class TenantDatabaseProvisioningService {
 
     private void updatePersona(Connection connection, UsuarioEntity usuario) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement(
-                "UPDATE persona SET name = ?, email = ?, telefono = ?, fechacreacion = ? WHERE id = ?")) {
+                "UPDATE persona SET name = ?, email = ?, telefono = ?, fecha_creacion = ? WHERE id = ?")) {
             statement.setString(1, usuario.getName());
             statement.setString(2, usuario.getEmail());
             statement.setInt(3, usuario.getTelefono());
             statement.setTimestamp(4, toTimestamp(usuario.getFechaCreacion()));
             statement.setLong(5, usuario.getId());
             statement.executeUpdate();
+        }
+    }
+
+    private void normalizePersonaFechaCreacionColumn(String tenantDatabase) {
+        DataSource tenantDataSource = tenantDataSourceFactory.getTenantDataSource(tenantDatabase);
+        try (Connection connection = tenantDataSource.getConnection()) {
+            boolean hasFechaCreacion = columnExists(connection, "persona", "fecha_creacion");
+            boolean hasFechacreacion = columnExists(connection, "persona", "fechacreacion");
+
+            if (hasFechacreacion && !hasFechaCreacion) {
+                try (Statement statement = connection.createStatement()) {
+                    statement.executeUpdate("ALTER TABLE persona RENAME COLUMN fechacreacion TO fecha_creacion");
+                }
+                return;
+            }
+
+            if (hasFechacreacion && hasFechaCreacion) {
+                try (Statement statement = connection.createStatement()) {
+                    statement.executeUpdate("UPDATE persona SET fecha_creacion = COALESCE(fecha_creacion, fechacreacion) WHERE fecha_creacion IS NULL");
+                    statement.executeUpdate("ALTER TABLE persona DROP COLUMN IF EXISTS fechacreacion");
+                }
+            }
+        } catch (SQLException ex) {
+            throw new IllegalStateException("No se pudo normalizar la columna de fecha de creación de persona.", ex);
+        }
+    }
+
+    private boolean columnExists(Connection connection, String tableName, String columnName) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(
+                "SELECT 1 FROM information_schema.columns WHERE table_name = ? AND column_name = ?")) {
+            statement.setString(1, tableName);
+            statement.setString(2, columnName);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next();
+            }
         }
     }
 
