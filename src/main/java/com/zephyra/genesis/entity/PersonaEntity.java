@@ -32,6 +32,13 @@ public class PersonaEntity {
         this.fechaCreacion = new Date();
     }
 
+    @PrePersist
+    protected void onCreate() {
+        if (fechaCreacion == null) {
+            fechaCreacion = new Date();
+        }
+    }
+
     public Long getId() {
         return id;
     }
