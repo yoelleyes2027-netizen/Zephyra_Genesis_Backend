@@ -31,6 +31,11 @@ public class AdminSistemaController {
         return ResponseEntity.ok(Map.of("ok", true, "data", adminSistemaService.listarUsuarios()));
     }
 
+    @GetMapping("/bases-datos")
+    public ResponseEntity<?> listarBasesDeDatos() {
+        return ResponseEntity.ok(Map.of("ok", true, "data", adminSistemaService.listarBasesDeDatos()));
+    }
+
     @GetMapping("/usuarios/{cedula}")
     public ResponseEntity<UsuarioAdminResponse> buscarUsuario(@PathVariable int cedula) {
         return ResponseEntity.ok(adminSistemaService.buscarUsuario(cedula));

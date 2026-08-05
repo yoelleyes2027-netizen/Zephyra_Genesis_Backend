@@ -21,6 +21,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -38,6 +42,7 @@ public class AdminSistemaService {
     private final DetalleTicketRepository detalleTicketRepository;
     private final CajaDiariaRepository cajaDiariaRepository;
     private final TenantDatabaseProvisioningService tenantDatabaseProvisioningService;
+    private final DataSource masterDataSource;
     private final PasswordEncoder passwordEncoder;
 
     public AdminSistemaService(
@@ -49,6 +54,7 @@ public class AdminSistemaService {
             DetalleTicketRepository detalleTicketRepository,
             CajaDiariaRepository cajaDiariaRepository,
             TenantDatabaseProvisioningService tenantDatabaseProvisioningService,
+            @org.springframework.beans.factory.annotation.Qualifier("masterDataSource") DataSource masterDataSource,
             PasswordEncoder passwordEncoder) {
         this.usuarioRepository = usuarioRepository;
         this.proveedorRepository = proveedorRepository;
@@ -58,11 +64,28 @@ public class AdminSistemaService {
         this.detalleTicketRepository = detalleTicketRepository;
         this.cajaDiariaRepository = cajaDiariaRepository;
         this.tenantDatabaseProvisioningService = tenantDatabaseProvisioningService;
+        this.masterDataSource = masterDataSource;
         this.passwordEncoder = passwordEncoder;
     }
 
     public List<UsuarioAdminResponse> listarUsuarios() {
         return usuarioRepository.findAll().stream().map(this::toUsuarioResponse).toList();
+    }
+
+    public List<String> listarBasesDeDatos() {
+        try (Connection connection = masterDataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(
+                     "SELECT datname FROM pg_database WHERE datistemplate = false AND datallowconn = true AND datname NOT IN ('postgres', 'template0', 'template1', 'rdsadmin') ORDER BY datname")) {
+            try (ResultSet resultSet = statement.executeQuery()) {
+                java.util.ArrayList<String> bases = new java.util.ArrayList<>();
+                while (resultSet.next()) {
+                    bases.add(resultSet.getString("datname"));
+                }
+                return bases;
+            }
+        } catch (Exception ex) {
+            throw new IllegalStateException("No se pudieron listar las bases de datos de RDS.", ex);
+        }
     }
 
     public UsuarioAdminResponse buscarUsuario(int cedula) {
