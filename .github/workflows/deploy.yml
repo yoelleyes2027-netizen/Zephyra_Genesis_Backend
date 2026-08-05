@@ -16,6 +16,7 @@ env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
   ECR_REGISTRY: 316388238667.dkr.ecr.us-east-1.amazonaws.com
   ECR_REPOSITORY: genesis/backend
+  EC2_HOST: 32.196.157.34
 
 jobs:
   deploy:
@@ -39,13 +40,18 @@ jobs:
 
       - name: Get runner public IP
         id: runner_ip
-        run: echo "ip=$(curl -s https://checkip.amazonaws.com)" >> "$GITHUB_OUTPUT"
+        run: echo "ip=$(curl -4 -s https://checkip.amazonaws.com)" >> "$GITHUB_OUTPUT"
 
       - name: Allow temporary SSH access from runner
         run: |
           aws ec2 authorize-security-group-ingress \
             --group-id "${{ secrets.EC2_SECURITY_GROUP_ID }}" \
-            --ip-permissions "IpProtocol=tcp,FromPort=22,ToPort=22,IpRanges=[{CidrIp=${{ steps.runner_ip.outputs.ip }}/32,Description='GitHub Actions runner SSH'}]" || true
+            --ip-permissions "IpProtocol=tcp,FromPort=22,ToPort=22,IpRanges=[{CidrIp=${{ steps.runner_ip.outputs.ip }}/32,Description='GitHub Actions runner SSH'}]"
+
+          aws ec2 describe-security-groups \
+            --group-ids "${{ secrets.EC2_SECURITY_GROUP_ID }}" \
+            --query "SecurityGroups[0].IpPermissions[?FromPort==\`22\` && ToPort==\`22\`]" \
+            --output json
 
       - name: Build, tag, and push image
         run: |
@@ -55,13 +61,23 @@ jobs:
 
       - name: Deploy backend on EC2
         env:
-          EC2_HOST: ${{ secrets.EC2_HOST }}
           EC2_SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
         run: |
           mkdir -p ~/.ssh
           printf '%s\n' "$EC2_SSH_PRIVATE_KEY" > ~/.ssh/zephyra_ec2.pem
           chmod 600 ~/.ssh/zephyra_ec2.pem
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/zephyra_ec2.pem ec2-user@"$EC2_HOST" "cd /home/ec2-user/zephyra && aws ecr get-login-password --region ${AWS_REGION} | sudo docker login --username AWS --password-stdin ${ECR_REGISTRY} && sudo docker-compose pull backend && sudo docker-compose up -d backend"
+          for attempt in 1 2 3 4 5 6; do
+            if ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout=15 -i ~/.ssh/zephyra_ec2.pem ec2-user@"$EC2_HOST" "cd /home/ec2-user/zephyra && aws ecr get-login-password --region ${AWS_REGION} | sudo docker login --username AWS --password-stdin ${ECR_REGISTRY} && sudo docker-compose pull backend && sudo docker-compose up -d backend"; then
+              exit 0
+            fi
+
+            if [ "$attempt" -lt 6 ]; then
+              echo "SSH todavía no responde, reintentando en 10 segundos..."
+              sleep 10
+            fi
+          done
+
+          exit 1
 
       - name: Revoke temporary SSH access
         if: always()
