@@ -19,7 +19,7 @@ public class PersonaEntity {
     @Column
     private int telefono;
 
-    @Column(nullable = false)
+    @Column(name = "fechacreacion", nullable = false)
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaCreacion;
 

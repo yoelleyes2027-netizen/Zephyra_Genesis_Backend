@@ -158,7 +158,7 @@ public class TenantDatabaseProvisioningService {
 
     private void insertPersona(Connection connection, UsuarioEntity usuario) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement(
-                "INSERT INTO persona (id, name, email, telefono, fecha_creacion) VALUES (?, ?, ?, ?, ?)");) {
+                "INSERT INTO persona (id, name, email, telefono, fechacreacion) VALUES (?, ?, ?, ?, ?)" );) {
             statement.setLong(1, usuario.getId());
             statement.setString(2, usuario.getName());
             statement.setString(3, usuario.getEmail());
@@ -170,7 +170,7 @@ public class TenantDatabaseProvisioningService {
 
     private void updatePersona(Connection connection, UsuarioEntity usuario) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement(
-                "UPDATE persona SET name = ?, email = ?, telefono = ?, fecha_creacion = ? WHERE id = ?")) {
+                "UPDATE persona SET name = ?, email = ?, telefono = ?, fechacreacion = ? WHERE id = ?")) {
             statement.setString(1, usuario.getName());
             statement.setString(2, usuario.getEmail());
             statement.setInt(3, usuario.getTelefono());
