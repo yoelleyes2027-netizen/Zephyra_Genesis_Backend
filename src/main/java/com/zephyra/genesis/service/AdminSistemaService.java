@@ -75,7 +75,7 @@ public class AdminSistemaService {
     public List<String> listarBasesDeDatos() {
         try (Connection connection = masterDataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(
-                     "SELECT datname FROM pg_database WHERE datistemplate = false AND datallowconn = true AND datname NOT IN ('postgres', 'template0', 'template1', 'rdsadmin') ORDER BY datname")) {
+                     "SELECT datname FROM pg_database WHERE datistemplate = false AND datallowconn = true AND datname NOT IN ('postgres', 'template0', 'template1', 'rdsadmin', 'zephyra_admins') ORDER BY datname")) {
             try (ResultSet resultSet = statement.executeQuery()) {
                 java.util.ArrayList<String> bases = new java.util.ArrayList<>();
                 while (resultSet.next()) {
@@ -113,16 +113,14 @@ public class AdminSistemaService {
         usuario.setCedula(request.cedula());
         usuario.setPassword(passwordEncoder.encode(request.contraseña()));
         usuario.setRol(parseRol(request.rol()));
-        if (request.tenantDatabase() == null || request.tenantDatabase().isBlank()) {
-            throw new IllegalArgumentException("La base de datos asignada es obligatoria.");
-        }
-        usuario.setTenantDatabase(request.tenantDatabase());
+        String tenantDatabase = normalizeTenantDatabase(request.tenantDatabase());
+        usuario.setTenantDatabase(tenantDatabase);
         usuario.setFechaCreacion(new Date());
         usuario.setFotoPerfil(null);
         usuario.setFechaInicioDeDia(null);
 
         UsuarioEntity saved = usuarioRepository.save(usuario);
-        tenantDatabaseProvisioningService.upsertUsuario(saved.getTenantDatabase(), saved);
+        syncToTenantDatabase(saved, null);
         return toUsuarioResponse(saved);
     }
 
@@ -138,19 +136,12 @@ public class AdminSistemaService {
             usuario.setPassword(passwordEncoder.encode(request.contraseña()));
         }
         usuario.setRol(parseRol(request.rol()));
-        if (request.tenantDatabase() == null || request.tenantDatabase().isBlank()) {
-            throw new IllegalArgumentException("La base de datos asignada es obligatoria.");
-        }
         String previousTenantDatabase = usuario.getTenantDatabase();
-        String tenantDatabase = request.tenantDatabase().trim();
-        tenantDatabaseProvisioningService.ensureTenantDatabase(tenantDatabase);
+        String tenantDatabase = normalizeTenantDatabase(request.tenantDatabase());
         usuario.setTenantDatabase(tenantDatabase);
 
         UsuarioEntity saved = usuarioRepository.save(usuario);
-        tenantDatabaseProvisioningService.upsertUsuario(saved.getTenantDatabase(), saved);
-        if (previousTenantDatabase != null && !previousTenantDatabase.isBlank() && !previousTenantDatabase.equals(saved.getTenantDatabase())) {
-            tenantDatabaseProvisioningService.deleteUsuario(previousTenantDatabase, saved.getId());
-        }
+        syncToTenantDatabase(saved, previousTenantDatabase);
 
         return toUsuarioResponse(saved);
     }
@@ -306,7 +297,43 @@ public class AdminSistemaService {
         if (rol == null || rol.isBlank()) {
             throw new IllegalArgumentException("Rol es obligatorio.");
         }
-        return ROL.valueOf(rol.trim().toUpperCase());
+        ROL parsed = ROL.valueOf(rol.trim().toUpperCase());
+        if (parsed == ROL.ADMIN_SISTEMA) {
+            throw new IllegalArgumentException("No se puede crear un usuario con rol admin_sistema desde este panel.");
+        }
+        return parsed;
+    }
+
+    private String normalizeTenantDatabase(String tenantDatabase) {
+        if (tenantDatabase == null || tenantDatabase.isBlank()) {
+            throw new IllegalArgumentException("La base de datos asignada es obligatoria.");
+        }
+        return tenantDatabase.trim();
+    }
+
+    private void syncToTenantDatabase(UsuarioEntity usuario, String previousTenantDatabase) {
+        String tenantDatabase = usuario.getTenantDatabase();
+        if (tenantDatabase == null || tenantDatabase.isBlank() || isMasterDatabase(tenantDatabase)) {
+            return;
+        }
+
+        tenantDatabaseProvisioningService.ensureTenantDatabase(tenantDatabase);
+        tenantDatabaseProvisioningService.upsertUsuario(tenantDatabase, usuario);
+        if (previousTenantDatabase != null && !previousTenantDatabase.isBlank() && !previousTenantDatabase.equals(tenantDatabase) && !isMasterDatabase(previousTenantDatabase)) {
+            tenantDatabaseProvisioningService.deleteUsuario(previousTenantDatabase, usuario.getId());
+        }
+    }
+
+    private boolean isMasterDatabase(String tenantDatabase) {
+        if (tenantDatabase == null || tenantDatabase.isBlank()) {
+            return false;
+        }
+        try (Connection connection = masterDataSource.getConnection()) {
+            String masterDatabaseName = connection.getCatalog();
+            return masterDatabaseName != null && masterDatabaseName.equalsIgnoreCase(tenantDatabase.trim());
+        } catch (Exception ex) {
+            return false;
+        }
     }
 
     private String normalizeEmail(String email, int cedula) {
