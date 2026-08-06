@@ -5,6 +5,7 @@ import com.zephyra.genesis.dto.EmpresaResponse;
 import com.zephyra.genesis.entity.EmpresaEntity;
 import com.zephyra.genesis.entity.TIPO_DOCUMENTO;
 import com.zephyra.genesis.repository.EmpresaRepository;
+import com.zephyra.genesis.repository.TicketRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,9 +16,11 @@ import java.util.List;
 public class EmpresaService {
 
     private final EmpresaRepository empresaRepository;
+    private final TicketRepository ticketRepository;
 
-    public EmpresaService(EmpresaRepository empresaRepository) {
+    public EmpresaService(EmpresaRepository empresaRepository, TicketRepository ticketRepository) {
         this.empresaRepository = empresaRepository;
+        this.ticketRepository = ticketRepository;
     }
 
     public List<EmpresaResponse> listar() {
@@ -70,6 +73,9 @@ public class EmpresaService {
     public void eliminarPorDocumento(String documento) {
         EmpresaEntity empresa = empresaRepository.findByNumeroDocumentoIgnoreCase(documento)
                 .orElseThrow(() -> new IllegalArgumentException("Empresa no encontrada"));
+        if (ticketRepository.existsByCliente_Id(empresa.getId())) {
+            throw new IllegalArgumentException("No se puede eliminar la empresa porque tiene tickets asociados.");
+        }
         empresaRepository.delete(empresa);
     }
 

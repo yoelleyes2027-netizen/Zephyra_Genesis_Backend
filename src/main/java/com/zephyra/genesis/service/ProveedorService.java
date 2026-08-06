@@ -4,6 +4,8 @@ import com.zephyra.genesis.dto.ProveedorRequest;
 import com.zephyra.genesis.dto.ProveedorResponse;
 import com.zephyra.genesis.entity.ProveedorEntity;
 import com.zephyra.genesis.entity.TIPO_DOCUMENTO;
+import com.zephyra.genesis.entity.ProductoEntity;
+import com.zephyra.genesis.repository.ProductoRepository;
 import com.zephyra.genesis.repository.ProveedorRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,9 +16,11 @@ import java.util.List;
 public class ProveedorService {
 
     private final ProveedorRepository proveedorRepository;
+    private final ProductoRepository productoRepository;
 
-    public ProveedorService(ProveedorRepository proveedorRepository) {
+    public ProveedorService(ProveedorRepository proveedorRepository, ProductoRepository productoRepository) {
         this.proveedorRepository = proveedorRepository;
+        this.productoRepository = productoRepository;
     }
 
     @Transactional(readOnly = true)
@@ -73,6 +77,10 @@ public class ProveedorService {
     public void desactivarPorDocumento(String documento) {
         ProveedorEntity proveedor = proveedorRepository.findByNumeroDocumentoIgnoreCase(documento)
                 .orElseThrow(() -> new IllegalArgumentException("Proveedor no encontrado"));
+        List<ProductoEntity> productos = productoRepository.findByProveedorId_Id(proveedor.getId());
+        if (!productos.isEmpty()) {
+            productoRepository.deleteAll(productos);
+        }
         proveedorRepository.delete(proveedor);
     }
 

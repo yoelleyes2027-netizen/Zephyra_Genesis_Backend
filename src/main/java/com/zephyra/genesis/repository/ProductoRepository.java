@@ -11,4 +11,5 @@ public interface ProductoRepository extends JpaRepository<ProductoEntity, Long> 
     List<ProductoEntity> findByActivoTrueOrderByDescripcionAsc();
     List<ProductoEntity> findByActivoTrueAndDescripcionContainingIgnoreCaseOrderByDescripcionAsc(String descripcion);
     boolean existsByCodigoDeBarras(int codigoDeBarras);
+    List<ProductoEntity> findByProveedorId_Id(Long proveedorId);
 }
