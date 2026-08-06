@@ -36,6 +36,11 @@ public class AdminSistemaController {
         return ResponseEntity.ok(Map.of("ok", true, "data", adminSistemaService.listarBasesDeDatos()));
     }
 
+    @GetMapping("/tablas")
+    public ResponseEntity<?> listarTablas(@RequestParam String baseDatos) {
+        return ResponseEntity.ok(Map.of("ok", true, "data", adminSistemaService.listarTablas(baseDatos)));
+    }
+
     @GetMapping("/usuarios/{cedula}")
     public ResponseEntity<UsuarioAdminResponse> buscarUsuario(@PathVariable int cedula) {
         return ResponseEntity.ok(adminSistemaService.buscarUsuario(cedula));
@@ -60,7 +65,38 @@ public class AdminSistemaController {
     }
 
     @GetMapping("/soporte")
-    public ResponseEntity<?> soporte(@RequestParam String tabla) {
-        return ResponseEntity.ok(Map.of("ok", true, "data", adminSistemaService.soporte(tabla)));
+    public ResponseEntity<?> soporte(@RequestParam String baseDatos, @RequestParam String tabla) {
+        return ResponseEntity.ok(Map.of("ok", true, "data", adminSistemaService.soporte(baseDatos, tabla)));
+    }
+
+    @PutMapping("/soporte")
+    public ResponseEntity<?> editarSoporte(@RequestBody Map<String, Object> body) {
+        String baseDatos = stringValue(body.get("baseDatos"));
+        String tabla = stringValue(body.get("tabla"));
+        String clave = stringValue(body.get("clave"));
+        Map<String, Object> datos = mapValue(body.get("data"));
+        Map<String, Object> resultado = adminSistemaService.editarSoporte(baseDatos, tabla, clave, datos);
+        return ResponseEntity.ok(Map.of("ok", true, "mensaje", "Registro actualizado correctamente", "data", resultado));
+    }
+
+    @DeleteMapping("/soporte")
+    public ResponseEntity<?> eliminarSoporte(@RequestBody Map<String, Object> body) {
+        String baseDatos = stringValue(body.get("baseDatos"));
+        String tabla = stringValue(body.get("tabla"));
+        String clave = stringValue(body.get("clave"));
+        adminSistemaService.eliminarSoporte(baseDatos, tabla, clave);
+        return ResponseEntity.ok(Map.of("ok", true, "mensaje", "Registro eliminado correctamente"));
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> mapValue(Object value) {
+        if (value instanceof Map<?, ?> map) {
+            return (Map<String, Object>) map;
+        }
+        return Map.of();
+    }
+
+    private String stringValue(Object value) {
+        return value == null ? null : String.valueOf(value).trim();
     }
 }

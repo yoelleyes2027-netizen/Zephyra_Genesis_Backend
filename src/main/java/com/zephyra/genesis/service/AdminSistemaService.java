@@ -3,6 +3,7 @@ package com.zephyra.genesis.service;
 import com.zephyra.genesis.dto.UsuarioAdminRequest;
 import com.zephyra.genesis.dto.UsuarioAdminResponse;
 import com.zephyra.genesis.entity.CajaDiariaEntity;
+import com.zephyra.genesis.entity.ClienteEntity;
 import com.zephyra.genesis.entity.DetalleTicket;
 import com.zephyra.genesis.entity.EmpresaEntity;
 import com.zephyra.genesis.entity.ProductoEntity;
@@ -10,6 +11,7 @@ import com.zephyra.genesis.entity.ProveedorEntity;
 import com.zephyra.genesis.entity.ROL;
 import com.zephyra.genesis.entity.TicketEntity;
 import com.zephyra.genesis.entity.UsuarioEntity;
+import com.zephyra.genesis.repository.ClienteRepository;
 import com.zephyra.genesis.repository.CajaDiariaRepository;
 import com.zephyra.genesis.repository.DetalleTicketRepository;
 import com.zephyra.genesis.repository.EmpresaRepository;
@@ -17,24 +19,32 @@ import com.zephyra.genesis.repository.ProductoRepository;
 import com.zephyra.genesis.repository.ProveedorRepository;
 import com.zephyra.genesis.repository.TicketRepository;
 import com.zephyra.genesis.repository.UsuarioRepository;
+import com.zephyra.genesis.config.TenantDataSourceFactory;
+import com.zephyra.genesis.tenant.TenantContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.Statement;
 import java.util.Date;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 @Service
 @Transactional
 public class AdminSistemaService {
 
     private final UsuarioRepository usuarioRepository;
+    private final ClienteRepository clienteRepository;
     private final ProveedorRepository proveedorRepository;
     private final EmpresaRepository empresaRepository;
     private final ProductoRepository productoRepository;
@@ -42,11 +52,14 @@ public class AdminSistemaService {
     private final DetalleTicketRepository detalleTicketRepository;
     private final CajaDiariaRepository cajaDiariaRepository;
     private final TenantDatabaseProvisioningService tenantDatabaseProvisioningService;
+    private final TenantDataSourceFactory tenantDataSourceFactory;
     private final DataSource masterDataSource;
     private final PasswordEncoder passwordEncoder;
+    private final TicketService ticketService;
 
     public AdminSistemaService(
             UsuarioRepository usuarioRepository,
+            ClienteRepository clienteRepository,
             ProveedorRepository proveedorRepository,
             EmpresaRepository empresaRepository,
             ProductoRepository productoRepository,
@@ -54,9 +67,12 @@ public class AdminSistemaService {
             DetalleTicketRepository detalleTicketRepository,
             CajaDiariaRepository cajaDiariaRepository,
             TenantDatabaseProvisioningService tenantDatabaseProvisioningService,
+            TenantDataSourceFactory tenantDataSourceFactory,
             @org.springframework.beans.factory.annotation.Qualifier("masterDataSource") DataSource masterDataSource,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder,
+            TicketService ticketService) {
         this.usuarioRepository = usuarioRepository;
+        this.clienteRepository = clienteRepository;
         this.proveedorRepository = proveedorRepository;
         this.empresaRepository = empresaRepository;
         this.productoRepository = productoRepository;
@@ -64,8 +80,10 @@ public class AdminSistemaService {
         this.detalleTicketRepository = detalleTicketRepository;
         this.cajaDiariaRepository = cajaDiariaRepository;
         this.tenantDatabaseProvisioningService = tenantDatabaseProvisioningService;
+        this.tenantDataSourceFactory = tenantDataSourceFactory;
         this.masterDataSource = masterDataSource;
         this.passwordEncoder = passwordEncoder;
+        this.ticketService = ticketService;
     }
 
     public List<UsuarioAdminResponse> listarUsuarios() {
@@ -177,21 +195,371 @@ public class AdminSistemaService {
         return cajaDiariaRepository.findAll().stream().map(this::toCajaDiariaMap).toList();
     }
 
-    public Map<String, Object> soporte(String tabla) {
+    public List<String> listarTablas(String baseDatos) {
+        String normalizedBaseDatos = normalizeDatabaseName(baseDatos);
+        try (Connection connection = tenantDataSourceFactory.getTenantDataSource(normalizedBaseDatos).getConnection()) {
+            DatabaseMetaData metaData = connection.getMetaData();
+            try (ResultSet resultSet = metaData.getTables(connection.getCatalog(), "public", "%", new String[] { "TABLE" })) {
+                List<String> tablas = new ArrayList<>();
+                while (resultSet.next()) {
+                    String tableName = resultSet.getString("TABLE_NAME");
+                    if (!isSystemTable(tableName)) {
+                        tablas.add(tableName);
+                    }
+                }
+                tablas.sort(String::compareToIgnoreCase);
+                return tablas;
+            }
+        } catch (Exception ex) {
+            throw new IllegalStateException("No se pudieron listar las tablas de la base de datos seleccionada.", ex);
+        }
+    }
+
+    public Map<String, Object> soporte(String baseDatos, String tabla) {
+        String normalizedBase = normalizeDatabaseName(baseDatos);
         String normalized = tabla == null ? "" : tabla.trim().toLowerCase();
         Map<String, Object> response = new HashMap<>();
+        response.put("baseDatos", normalizedBase);
         response.put("tabla", normalized);
         response.put("data", switch (normalized) {
-            case "usuario", "usuarios" -> listarUsuarios();
-            case "proveedor", "proveedores" -> listarProveedores();
-            case "empresa", "empresas" -> listarEmpresas();
-            case "producto", "productos" -> listarProductos();
-            case "ticket", "tickets" -> listarTickets();
-            case "detalle_ticket", "detalle-ticket", "detalleticket" -> listarDetallesTicket();
-            case "caja_diaria", "caja-diaria", "cajadiaria" -> listarCajasDiarias();
-            default -> throw new IllegalArgumentException("Tabla no soportada.");
+            case "usuario", "usuarios" -> listarUsuariosDesdeBase(normalizedBase);
+            case "cliente", "clientes" -> listarClientesDesdeBase(normalizedBase);
+            case "proveedor", "proveedores" -> listarProveedoresDesdeBase(normalizedBase);
+            case "empresa", "empresas" -> listarEmpresasDesdeBase(normalizedBase);
+            case "producto", "productos" -> listarProductosDesdeBase(normalizedBase);
+            case "ticket", "tickets" -> listarTicketsDesdeBase(normalizedBase);
+            case "detalle_ticket", "detalle-ticket", "detalleticket" -> listarDetallesTicketDesdeBase(normalizedBase);
+            case "caja_diaria", "caja-diaria", "cajadiaria" -> listarCajasDiariasDesdeBase(normalizedBase);
+            default -> listarTablaGenerica(normalizedBase, normalized);
         });
         return response;
+    }
+
+    public Map<String, Object> editarSoporte(String baseDatos, String tabla, String clave, Map<String, Object> datos) {
+        String normalizedBase = normalizeDatabaseName(baseDatos);
+        String normalized = normalizeTableName(tabla);
+        return withTenant(normalizedBase, () -> {
+            switch (normalized) {
+                case "usuario", "usuarios" -> editarUsuarioEnTenant(clave, datos);
+                case "cliente", "clientes" -> editarClienteEnTenant(clave, datos);
+                case "proveedor", "proveedores" -> editarProveedorEnTenant(clave, datos);
+                case "empresa", "empresas" -> editarEmpresaEnTenant(clave, datos);
+                case "producto", "productos" -> editarProductoEnTenant(clave, datos);
+                default -> throw new IllegalArgumentException("La edición no está disponible para esta tabla.");
+            }
+            return Map.of("tabla", normalized, "clave", clave, "baseDatos", normalizedBase);
+        });
+    }
+
+    public void eliminarSoporte(String baseDatos, String tabla, String clave) {
+        String normalizedBase = normalizeDatabaseName(baseDatos);
+        String normalized = normalizeTableName(tabla);
+        withTenant(normalizedBase, () -> {
+            switch (normalized) {
+                case "usuario", "usuarios" -> eliminarUsuarioEnTenant(clave);
+                case "cliente", "clientes" -> eliminarClienteEnTenant(clave);
+                case "proveedor", "proveedores" -> eliminarProveedorEnTenant(clave);
+                case "empresa", "empresas" -> eliminarEmpresaEnTenant(clave);
+                case "producto", "productos" -> eliminarProductoEnTenant(clave);
+                case "ticket", "tickets" -> ticketService.desactivar(parseLong(clave, "ticket"));
+                case "detalle_ticket", "detalle-ticket", "detalleticket" -> ticketService.eliminarArticulos(List.of(parseLong(clave, "detalle ticket")));
+                default -> throw new IllegalArgumentException("La eliminación no está disponible para esta tabla.");
+            }
+            return null;
+        });
+    }
+
+    private <T> T withTenant(String baseDatos, Supplier<T> supplier) {
+        try {
+            TenantContextHolder.setTenantDatabase(baseDatos);
+            return supplier.get();
+        } finally {
+            TenantContextHolder.clear();
+        }
+    }
+
+    private void editarUsuarioEnTenant(String clave, Map<String, Object> datos) {
+        UsuarioEntity usuario = usuarioRepository.findByCedula(parseInt(clave, "cédula"))
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado."));
+        usuario.setName(stringValue(datos, "nombre", usuario.getName()));
+        usuario.setEmail(normalizeEmail(stringValue(datos, "email", usuario.getEmail()), usuario.getCedula()));
+        usuario.setTelefono(intValue(datos, "telefono", usuario.getTelefono()));
+        usuario.setCedula(intValue(datos, "cedula", usuario.getCedula()));
+        String password = stringValue(datos, "contraseña", null);
+        if (password != null && !password.isBlank()) {
+            usuario.setPassword(passwordEncoder.encode(password));
+        }
+        usuario.setRol(parseRol(stringValue(datos, "rol", usuario.getRol() != null ? usuario.getRol().name() : null)));
+        String tenantDatabase = stringValue(datos, "tenantDatabase", usuario.getTenantDatabase());
+        if (tenantDatabase != null && !tenantDatabase.isBlank()) {
+            usuario.setTenantDatabase(tenantDatabase.trim());
+        }
+        usuarioRepository.save(usuario);
+    }
+
+    private void editarClienteEnTenant(String clave, Map<String, Object> datos) {
+        ClienteEntity cliente = clienteRepository.findByEmailIgnoreCase(clave)
+                .orElseThrow(() -> new IllegalArgumentException("Cliente no encontrado."));
+        cliente.setName(stringValue(datos, "name", cliente.getName()));
+        cliente.setEmail(stringValue(datos, "email", cliente.getEmail()));
+        cliente.setTelefono(intValue(datos, "telefono", cliente.getTelefono()));
+        clienteRepository.save(cliente);
+    }
+
+    private void editarProveedorEnTenant(String clave, Map<String, Object> datos) {
+        ProveedorEntity proveedor = proveedorRepository.findByNumeroDocumentoIgnoreCase(clave)
+                .orElseThrow(() -> new IllegalArgumentException("Proveedor no encontrado."));
+        proveedor.setName(stringValue(datos, "name", proveedor.getName()));
+        proveedor.setEmail(stringValue(datos, "email", proveedor.getEmail()));
+        proveedor.setTelefono(intValue(datos, "telefono", proveedor.getTelefono()));
+        proveedor.setNumeroDocumento(stringValue(datos, "numeroDocumento", proveedor.getNumeroDocumento()));
+        proveedor.setDireccion(stringValue(datos, "direccion", proveedor.getDireccion()));
+        proveedor.setRazonSocial(stringValue(datos, "razonSocial", proveedor.getRazonSocial()));
+        proveedor.setTipoDocumento(parseTipoDocumento(stringValue(datos, "tipoDocumento", proveedor.getTipoDocumento() != null ? proveedor.getTipoDocumento().name() : null)));
+        proveedorRepository.save(proveedor);
+    }
+
+    private void editarEmpresaEnTenant(String clave, Map<String, Object> datos) {
+        EmpresaEntity empresa = empresaRepository.findByNumeroDocumentoIgnoreCase(clave)
+                .orElseThrow(() -> new IllegalArgumentException("Empresa no encontrada."));
+        empresa.setName(stringValue(datos, "name", empresa.getName()));
+        empresa.setEmail(stringValue(datos, "email", empresa.getEmail()));
+        empresa.setTelefono(intValue(datos, "telefono", empresa.getTelefono()));
+        empresa.setRazonSocial(stringValue(datos, "razonSocial", empresa.getRazonSocial()));
+        empresa.setTipoDocumento(parseTipoDocumento(stringValue(datos, "tipoDocumento", empresa.getTipoDocumento() != null ? empresa.getTipoDocumento().name() : null)));
+        empresa.setDireccion(stringValue(datos, "direccion", empresa.getDireccion()));
+        empresa.setNumeroDocumento(stringValue(datos, "numeroDocumento", empresa.getNumeroDocumento()));
+        empresaRepository.save(empresa);
+    }
+
+    private void editarProductoEnTenant(String clave, Map<String, Object> datos) {
+        ProductoEntity producto = productoRepository.findByCodigoDeBarras(parseInt(clave, "código de barras"))
+                .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado."));
+        producto.setDescripcion(stringValue(datos, "descripcion", producto.getDescripcion()));
+        producto.setPrecioVenta(floatValue(datos, "precioVenta", producto.getPrecioVenta()));
+        producto.setPrecioCompra(floatValue(datos, "precioCompra", producto.getPrecioCompra()));
+        producto.setStock(intValue(datos, "stock", producto.getStock()));
+        producto.setUnidadDeMedida(parseUnidadDeMedida(stringValue(datos, "unidadDeMedida", producto.getUnidadDeMedida() != null ? producto.getUnidadDeMedida().name() : null)));
+        producto.setEtiqueta(stringValue(datos, "etiqueta", producto.getEtiqueta()));
+        Long proveedorId = longValue(datos, "proveedorId", producto.getproveedorId() != null ? producto.getproveedorId().getId() : null);
+        if (proveedorId == null) {
+            throw new IllegalArgumentException("Proveedor es obligatorio.");
+        }
+        ProveedorEntity proveedor = proveedorRepository.findById(proveedorId)
+                .orElseThrow(() -> new IllegalArgumentException("Proveedor no encontrado."));
+        producto.setproveedorId(proveedor);
+        producto.setFechaUltimoIngreso(new Date());
+        productoRepository.save(producto);
+    }
+
+    private void eliminarUsuarioEnTenant(String clave) {
+        UsuarioEntity usuario = usuarioRepository.findByCedula(parseInt(clave, "cédula"))
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado."));
+        usuarioRepository.delete(usuario);
+    }
+
+    private void eliminarClienteEnTenant(String clave) {
+        ClienteEntity cliente = clienteRepository.findByEmailIgnoreCase(clave)
+                .orElseThrow(() -> new IllegalArgumentException("Cliente no encontrado."));
+        clienteRepository.delete(cliente);
+    }
+
+    private void eliminarProveedorEnTenant(String clave) {
+        ProveedorEntity proveedor = proveedorRepository.findByNumeroDocumentoIgnoreCase(clave)
+                .orElseThrow(() -> new IllegalArgumentException("Proveedor no encontrado."));
+        proveedorRepository.delete(proveedor);
+    }
+
+    private void eliminarEmpresaEnTenant(String clave) {
+        EmpresaEntity empresa = empresaRepository.findByNumeroDocumentoIgnoreCase(clave)
+                .orElseThrow(() -> new IllegalArgumentException("Empresa no encontrada."));
+        empresaRepository.delete(empresa);
+    }
+
+    private void eliminarProductoEnTenant(String clave) {
+        ProductoEntity producto = productoRepository.findByCodigoDeBarras(parseInt(clave, "código de barras"))
+                .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado."));
+        producto.setActivo(false);
+        producto.setFechaUltimoIngreso(new Date());
+        productoRepository.save(producto);
+    }
+
+    private List<Map<String, Object>> listarUsuariosDesdeBase(String baseDatos) {
+        return ejecutarConsulta(baseDatos, """
+                SELECT
+                    u.id,
+                    p.name AS "nombre",
+                    p.email,
+                    p.telefono,
+                    u.cedula,
+                    lower(u.rol) AS "rol",
+                    u.tenant_database AS "tenantDatabase",
+                    p.fecha_creacion AS "fechaCreacion"
+                FROM usuario u
+                JOIN persona p ON p.id = u.id
+                ORDER BY p.name
+                """);
+    }
+
+    private List<Map<String, Object>> listarClientesDesdeBase(String baseDatos) {
+        return ejecutarConsulta(baseDatos, """
+                SELECT
+                    c.id,
+                    p.name,
+                    p.email,
+                    p.telefono,
+                    p.fecha_creacion AS "fechaCreacion"
+                FROM cliente c
+                JOIN persona p ON p.id = c.id
+                ORDER BY p.name
+                """);
+    }
+
+    private List<Map<String, Object>> listarProveedoresDesdeBase(String baseDatos) {
+        return ejecutarConsulta(baseDatos, """
+                SELECT
+                    pr.id,
+                    p.name,
+                    p.email,
+                    p.telefono,
+                    pr.numero_documento AS "numeroDocumento",
+                    pr.direccion,
+                    pr.razon_social AS "razonSocial",
+                    pr.tipo_documento AS "tipoDocumento",
+                    p.fecha_creacion AS "fechaCreacion"
+                FROM proveedor pr
+                JOIN persona p ON p.id = pr.id
+                ORDER BY pr.razon_social
+                """);
+    }
+
+    private List<Map<String, Object>> listarEmpresasDesdeBase(String baseDatos) {
+        return ejecutarConsulta(baseDatos, """
+                SELECT
+                    e.id,
+                    p.name,
+                    p.email,
+                    p.telefono,
+                    e.razon_social AS "razonSocial",
+                    e.tipo_documento AS "tipoDocumento",
+                    e.direccion,
+                    e.numero_documento AS "numeroDocumento",
+                    p.fecha_creacion AS "fechaCreacion"
+                FROM empresa e
+                JOIN cliente c ON c.id = e.id
+                JOIN persona p ON p.id = c.id
+                ORDER BY e.razon_social
+                """);
+    }
+
+    private List<Map<String, Object>> listarProductosDesdeBase(String baseDatos) {
+        return ejecutarConsulta(baseDatos, """
+                SELECT
+                    pr.id,
+                    pr.codigo_de_barras AS "codigoDeBarras",
+                    pr.descripcion,
+                    pr.precio_venta AS "precioVenta",
+                    pr.precio_compra AS "precioCompra",
+                    pr.stock,
+                    pr.unidad_de_medida AS "unidadDeMedida",
+                    pr.etiqueta,
+                    pr.proveedorid AS "proveedorId",
+                    COALESCE(pp.razon_social, '') AS "proveedorNombre",
+                    pr.activo,
+                    pr.fecha_de_ingreso AS "fechaDeIngreso",
+                    pr.fecha_ultimo_ingreso AS "fechaUltimoIngreso"
+                FROM producto pr
+                LEFT JOIN proveedor pv ON pv.id = pr.proveedorid
+                LEFT JOIN persona pp ON pp.id = pv.id
+                ORDER BY pr.descripcion
+                """);
+    }
+
+    private List<Map<String, Object>> listarTicketsDesdeBase(String baseDatos) {
+        return ejecutarConsulta(baseDatos, """
+                SELECT
+                    t.id,
+                    t.fecha_creacion AS "fechaCreacion",
+                    t.forma_de_pago AS "formaDePago",
+                    t.monto_total AS "montoTotal",
+                    t.usuario_id AS "usuarioId",
+                    up.name AS "usuarioNombre",
+                    t.cliente_id AS "clienteId",
+                    cp.name AS "clienteNombre",
+                    COUNT(dt.id) AS "detalleCount"
+                FROM ticket t
+                LEFT JOIN usuario u ON u.id = t.usuario_id
+                LEFT JOIN persona up ON up.id = u.id
+                LEFT JOIN cliente c ON c.id = t.cliente_id
+                LEFT JOIN persona cp ON cp.id = c.id
+                LEFT JOIN detalle_ticket dt ON dt.ticket_id = t.id
+                GROUP BY t.id, up.name, cp.name
+                ORDER BY t.id DESC
+                """);
+    }
+
+    private List<Map<String, Object>> listarDetallesTicketDesdeBase(String baseDatos) {
+        return ejecutarConsulta(baseDatos, """
+                SELECT
+                    dt.id,
+                    dt.ticket_id AS "ticketId",
+                    dt.producto_id AS "productoId",
+                    pr.descripcion AS "productoDescripcion",
+                    dt.cantidad,
+                    dt.precio_unitario AS "precioUnitario"
+                FROM detalle_ticket dt
+                LEFT JOIN producto pr ON pr.id = dt.producto_id
+                ORDER BY dt.id DESC
+                """);
+    }
+
+    private List<Map<String, Object>> listarCajasDiariasDesdeBase(String baseDatos) {
+        return ejecutarConsulta(baseDatos, """
+                SELECT
+                    c.id,
+                    c.total_ingresos AS "totalIngresos",
+                    c.total_egresos AS "totalEgresos",
+                    c.fecha_cierre AS "fechaCierre",
+                    c.diferencia,
+                    c.pos_calculado AS "posCalculado",
+                    c.pos_declarado AS "posDeclarado",
+                    c.efectivo_calculado AS "efectivoCalculado",
+                    c.efectivo_declarado AS "efectivoDeclarado",
+                    COALESCE(string_agg(p.name, ', '), '') AS "usuarios"
+                FROM caja_diaria c
+                LEFT JOIN usuario u ON u.caja_diaria_id = c.id
+                LEFT JOIN persona p ON p.id = u.id
+                GROUP BY c.id
+                ORDER BY c.id DESC
+                """);
+    }
+
+    private List<Map<String, Object>> listarTablaGenerica(String baseDatos, String tabla) {
+        String normalizedTable = normalizeTableName(tabla);
+        if (normalizedTable.isBlank()) {
+            throw new IllegalArgumentException("Tabla no soportada.");
+        }
+        return ejecutarConsulta(baseDatos, "SELECT * FROM " + quoteIdentifier(normalizedTable) + " ORDER BY 1");
+    }
+
+    private List<Map<String, Object>> ejecutarConsulta(String baseDatos, String sql) {
+        try (Connection connection = tenantDataSourceFactory.getTenantDataSource(normalizeDatabaseName(baseDatos)).getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql);
+             ResultSet resultSet = statement.executeQuery()) {
+            List<Map<String, Object>> rows = new ArrayList<>();
+            ResultSetMetaData metaData = resultSet.getMetaData();
+            int columnCount = metaData.getColumnCount();
+            while (resultSet.next()) {
+                Map<String, Object> row = new HashMap<>();
+                for (int index = 1; index <= columnCount; index++) {
+                    row.put(metaData.getColumnLabel(index), resultSet.getObject(index));
+                }
+                rows.add(row);
+            }
+            return rows;
+        } catch (Exception ex) {
+            throw new IllegalStateException("No se pudo consultar la información de soporte de la base de datos seleccionada.", ex);
+        }
     }
 
     private UsuarioAdminResponse toUsuarioResponse(UsuarioEntity usuario) {
@@ -338,5 +706,106 @@ public class AdminSistemaService {
 
     private String normalizeEmail(String email, int cedula) {
         return email != null && !email.isBlank() ? email.trim() : cedula + "@zephyra.local";
+    }
+
+    private int parseInt(String value, String fieldName) {
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("El campo " + fieldName + " debe ser numérico.");
+        }
+    }
+
+    private long parseLong(String value, String fieldName) {
+        try {
+            return Long.parseLong(value.trim());
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("El campo " + fieldName + " debe ser numérico.");
+        }
+    }
+
+    private int intValue(Map<String, Object> datos, String key, int fallback) {
+        Object value = datos != null ? datos.get(key) : null;
+        if (value == null || String.valueOf(value).isBlank()) {
+            return fallback;
+        }
+        return parseInt(String.valueOf(value), key);
+    }
+
+    private long longValue(Map<String, Object> datos, String key, Long fallback) {
+        Object value = datos != null ? datos.get(key) : null;
+        if (value == null || String.valueOf(value).isBlank()) {
+            return fallback;
+        }
+        return parseLong(String.valueOf(value), key);
+    }
+
+    private float floatValue(Map<String, Object> datos, String key, float fallback) {
+        Object value = datos != null ? datos.get(key) : null;
+        if (value == null || String.valueOf(value).isBlank()) {
+            return fallback;
+        }
+        try {
+            return Float.parseFloat(String.valueOf(value));
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("El valor de " + key + " debe ser numérico.");
+        }
+    }
+
+    private String stringValue(Map<String, Object> datos, String key, String fallback) {
+        Object value = datos != null ? datos.get(key) : null;
+        if (value == null) {
+            return fallback;
+        }
+        String text = String.valueOf(value).trim();
+        return text.isBlank() ? fallback : text;
+    }
+
+    private com.zephyra.genesis.entity.TIPO_DOCUMENTO parseTipoDocumento(String tipoDocumento) {
+        if (tipoDocumento == null || tipoDocumento.isBlank()) {
+            return com.zephyra.genesis.entity.TIPO_DOCUMENTO.CI;
+        }
+        String normalized = tipoDocumento.trim().toUpperCase();
+        return switch (normalized) {
+            case "RUT" -> com.zephyra.genesis.entity.TIPO_DOCUMENTO.RUT;
+            case "RUC" -> com.zephyra.genesis.entity.TIPO_DOCUMENTO.RUC;
+            default -> com.zephyra.genesis.entity.TIPO_DOCUMENTO.CI;
+        };
+    }
+
+    private com.zephyra.genesis.entity.UNIDAD_MEDIDA parseUnidadDeMedida(String value) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("Unidad de medida es obligatoria.");
+        }
+        return com.zephyra.genesis.entity.UNIDAD_MEDIDA.valueOf(value.trim().toUpperCase());
+    }
+
+    private String normalizeDatabaseName(String baseDatos) {
+        if (baseDatos == null || baseDatos.isBlank()) {
+            throw new IllegalArgumentException("La base de datos es obligatoria.");
+        }
+        return baseDatos.trim();
+    }
+
+    private String normalizeTableName(String tabla) {
+        if (tabla == null) {
+            return "";
+        }
+        return tabla.trim().toLowerCase();
+    }
+
+    private boolean isSystemTable(String tableName) {
+        if (tableName == null) {
+            return true;
+        }
+        String normalized = tableName.trim().toLowerCase();
+        return normalized.equals("flyway_schema_history")
+                || normalized.equals("schema_version")
+                || normalized.equals("databasechangelog")
+                || normalized.equals("databasechangeloglock");
+    }
+
+    private String quoteIdentifier(String identifier) {
+        return "\"" + identifier.replace("\"", "\"\"") + "\"";
     }
 }
