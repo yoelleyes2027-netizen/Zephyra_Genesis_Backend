@@ -31,7 +31,8 @@ public class ProveedorController {
     }
 
     @PostMapping
-    public ResponseEntity<?> crear(@RequestBody ProveedorRequest request) {
+    public ResponseEntity<?> crear(@RequestBody Map<String, Object> body) {
+        ProveedorRequest request = toRequest(body);
         ProveedorResponse proveedor = proveedorService.crear(request);
         return ResponseEntity.status(201).body(Map.of("mensaje", "Proveedor creado correctamente", "proveedor", proveedor));
     }
@@ -55,8 +56,9 @@ public class ProveedorController {
     }
 
     @PutMapping("/{valor}")
-    public ResponseEntity<?> actualizar(@PathVariable String valor, @RequestBody ProveedorRequest request) {
+    public ResponseEntity<?> actualizar(@PathVariable String valor, @RequestBody Map<String, Object> body) {
         try {
+            ProveedorRequest request = toRequest(body);
             ProveedorResponse proveedor = proveedorService.actualizarPorDocumento(valor, request);
             return ResponseEntity.ok(Map.of("ok", true, "mensaje", "Proveedor actualizado correctamente", "proveedor", proveedor));
         } catch (IllegalArgumentException ex) {
@@ -72,5 +74,40 @@ public class ProveedorController {
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(404).body(Map.of("ok", false, "mensaje", ex.getMessage()));
         }
+    }
+
+    private ProveedorRequest toRequest(Map<String, Object> body) {
+        return new ProveedorRequest(
+                stringValue(body, "name"),
+                stringValue(body, "email"),
+                intValue(body, "telefono"),
+                firstStringValue(body, "numeroDocumento", "numero_documento", "numerodocumento"),
+                stringValue(body, "direccion"),
+                firstStringValue(body, "razonSocial", "razon_social", "razonsocial"),
+                firstStringValue(body, "tipoDocumento", "tipo_documento", "tipodocumento")
+        );
+    }
+
+    private String firstStringValue(Map<String, Object> body, String... keys) {
+        for (String key : keys) {
+            String value = stringValue(body, key);
+            if (value != null && !value.isBlank()) {
+                return value;
+            }
+        }
+        return null;
+    }
+
+    private String stringValue(Map<String, Object> body, String key) {
+        Object value = body.get(key);
+        return value == null ? null : String.valueOf(value).trim();
+    }
+
+    private int intValue(Map<String, Object> body, String key) {
+        Object value = body.get(key);
+        if (value == null || String.valueOf(value).trim().isBlank()) {
+            return 0;
+        }
+        return Integer.parseInt(String.valueOf(value).trim());
     }
 }
