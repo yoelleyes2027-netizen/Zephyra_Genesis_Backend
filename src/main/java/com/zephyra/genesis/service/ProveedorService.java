@@ -38,6 +38,7 @@ public class ProveedorService {
 
     @Transactional
     public ProveedorResponse crear(ProveedorRequest request) {
+        validarObligatorios(request);
         validarDuplicados(null, request);
         ProveedorEntity proveedor = new ProveedorEntity(
                 request.name(),
@@ -56,6 +57,7 @@ public class ProveedorService {
     public ProveedorResponse actualizarPorDocumento(String documento, ProveedorRequest request) {
         ProveedorEntity proveedor = proveedorRepository.findByNumeroDocumentoIgnoreCase(documento)
                 .orElseThrow(() -> new IllegalArgumentException("Proveedor no encontrado"));
+        validarObligatorios(request);
         validarDuplicados(proveedor, request);
         proveedor.setName(request.name());
         proveedor.setEmail(request.email());
@@ -84,6 +86,18 @@ public class ProveedorService {
             case "RUC" -> TIPO_DOCUMENTO.RUC;
             default -> TIPO_DOCUMENTO.CI;
         };
+    }
+
+    private void validarObligatorios(ProveedorRequest request) {
+        if (request.numeroDocumento() == null || request.numeroDocumento().trim().isBlank()) {
+            throw new IllegalArgumentException("El número de documento es obligatorio.");
+        }
+        if (request.razonSocial() == null || request.razonSocial().trim().isBlank()) {
+            throw new IllegalArgumentException("La razón social es obligatoria.");
+        }
+        if (request.direccion() == null || request.direccion().trim().isBlank()) {
+            throw new IllegalArgumentException("La dirección es obligatoria.");
+        }
     }
 
     private void validarDuplicados(ProveedorEntity actual, ProveedorRequest request) {
