@@ -38,6 +38,7 @@ public class ProveedorService {
 
     @Transactional
     public ProveedorResponse crear(ProveedorRequest request) {
+        validarDuplicados(null, request);
         ProveedorEntity proveedor = new ProveedorEntity(
                 request.name(),
                 request.email(),
@@ -55,6 +56,7 @@ public class ProveedorService {
     public ProveedorResponse actualizarPorDocumento(String documento, ProveedorRequest request) {
         ProveedorEntity proveedor = proveedorRepository.findByNumeroDocumentoIgnoreCase(documento)
                 .orElseThrow(() -> new IllegalArgumentException("Proveedor no encontrado"));
+        validarDuplicados(proveedor, request);
         proveedor.setName(request.name());
         proveedor.setEmail(request.email());
         proveedor.setTelefono(request.telefono());
@@ -82,6 +84,26 @@ public class ProveedorService {
             case "RUC" -> TIPO_DOCUMENTO.RUC;
             default -> TIPO_DOCUMENTO.CI;
         };
+    }
+
+    private void validarDuplicados(ProveedorEntity actual, ProveedorRequest request) {
+        String numeroDocumento = request.numeroDocumento() != null ? request.numeroDocumento().trim() : "";
+        if (!numeroDocumento.isBlank()) {
+            boolean documentoEnUso = proveedorRepository.existsByNumeroDocumentoIgnoreCase(numeroDocumento)
+                    && (actual == null || !numeroDocumento.equalsIgnoreCase(actual.getNumeroDocumento()));
+            if (documentoEnUso) {
+                throw new IllegalArgumentException("Ya existe un proveedor con ese número de documento.");
+            }
+        }
+
+        String email = request.email() != null ? request.email().trim() : "";
+        if (!email.isBlank()) {
+            boolean emailEnUso = proveedorRepository.existsByEmailIgnoreCase(email)
+                    && (actual == null || actual.getEmail() == null || !email.equalsIgnoreCase(actual.getEmail()));
+            if (emailEnUso) {
+                throw new IllegalArgumentException("Ya existe un proveedor con ese email.");
+            }
+        }
     }
 
     private ProveedorResponse toResponse(ProveedorEntity proveedor) {

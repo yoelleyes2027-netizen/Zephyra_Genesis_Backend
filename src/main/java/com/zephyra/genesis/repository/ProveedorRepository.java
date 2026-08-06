@@ -10,4 +10,5 @@ public interface ProveedorRepository extends JpaRepository<ProveedorEntity, Long
     Optional<ProveedorEntity> findByNumeroDocumentoIgnoreCase(String numeroDocumento);
     List<ProveedorEntity> findByRazonSocialContainingIgnoreCaseOrderByRazonSocialAsc(String razonSocial);
     boolean existsByNumeroDocumentoIgnoreCase(String numeroDocumento);
+    boolean existsByEmailIgnoreCase(String email);
 }
