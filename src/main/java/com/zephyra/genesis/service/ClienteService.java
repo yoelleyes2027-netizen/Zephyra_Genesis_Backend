@@ -2,6 +2,7 @@ package com.zephyra.genesis.service;
 
 import com.zephyra.genesis.dto.ClienteRequest;
 import com.zephyra.genesis.dto.ClienteResponse;
+import com.zephyra.genesis.entity.ClienteComunEntity;
 import com.zephyra.genesis.entity.ClienteEntity;
 import com.zephyra.genesis.repository.ClienteRepository;
 import org.springframework.stereotype.Service;
@@ -37,7 +38,7 @@ public class ClienteService {
 
     @Transactional
     public ClienteResponse crear(ClienteRequest request) {
-        ClienteEntity cliente = new ClienteEntity(request.name(), request.email(), request.telefono());
+        ClienteEntity cliente = new ClienteComunEntity(request.name(), request.email(), request.telefono());
         return toResponse(clienteRepository.save(cliente));
     }
 
