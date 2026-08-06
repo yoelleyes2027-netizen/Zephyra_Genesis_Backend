@@ -6,17 +6,17 @@ import java.util.List;
 @Table(name = "proveedor")
 public class ProveedorEntity extends PersonaEntity {
 
-    @Column(name = "numerodocumento", nullable = false, unique = true)
+    @Column(name = "numero_documento", nullable = false, unique = true)
     private String numeroDocumento;
 
     @Column(nullable = false)
     private String direccion;
 
-    @Column(name = "razonsocial", nullable = false)
+    @Column(name = "razon_social", nullable = false)
     private String razonSocial;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "tipodocumento", nullable = false)
+    @Column(name = "tipo_documento", nullable = false)
     private TIPO_DOCUMENTO tipoDocumento;
 
     @OneToMany(mappedBy = "proveedorId", cascade = CascadeType.ALL, orphanRemoval = true)

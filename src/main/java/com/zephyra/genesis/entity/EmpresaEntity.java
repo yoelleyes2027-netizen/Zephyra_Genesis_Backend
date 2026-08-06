@@ -5,17 +5,17 @@ import jakarta.persistence.*;
 @Table(name = "empresa")
 public class EmpresaEntity extends ClienteEntity {
 
-    @Column(name = "razonsocial", nullable = false)
+    @Column(name = "razon_social", nullable = false)
     private String razonSocial;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "tipodocumento", nullable = false)
+    @Column(name = "tipo_documento", nullable = false)
     private TIPO_DOCUMENTO tipoDocumento;
 
     @Column(nullable = false)
     private String direccion;
 
-    @Column(name = "numerodocumento", nullable = false, unique = true)
+    @Column(name = "numero_documento", nullable = false, unique = true)
     private String numeroDocumento;
 
     public EmpresaEntity() {
