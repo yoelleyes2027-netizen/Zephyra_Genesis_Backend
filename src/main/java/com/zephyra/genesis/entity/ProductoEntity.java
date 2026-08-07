@@ -15,11 +15,11 @@ public class ProductoEntity {
     @Column(nullable = false)
     private boolean activo;
 
-    @Column(name = "fechadeingreso", nullable = false)
+    @Column(name = "fecha_de_ingreso", nullable = false)
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaDeIngreso;
 
-    @Column(name = "fechaultimoingreso", nullable = false)
+    @Column(name = "fecha_ultimo_ingreso", nullable = false)
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaUltimoIngreso;
 
