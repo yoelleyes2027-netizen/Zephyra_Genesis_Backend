@@ -45,6 +45,7 @@ public class ProductoService {
 
     @Transactional
     public ProductoResponse crear(ProductoRequest request) {
+        validarDuplicados(null, request);
         ProveedorEntity proveedor = resolverProveedor(request);
         ProductoEntity producto = new ProductoEntity(
                 request.codigoDeBarras(),
@@ -67,6 +68,7 @@ public class ProductoService {
     public ProductoResponse actualizarPorCodigo(int codigo, ProductoRequest request) {
         ProductoEntity producto = productoRepository.findByCodigoDeBarras(codigo)
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
+        validarDuplicados(producto, request);
         ProveedorEntity proveedor = resolverProveedor(request);
         producto.setDescripcion(request.descripcion());
         producto.setPrecioVenta(request.precioVenta());
@@ -89,6 +91,22 @@ public class ProductoService {
         }
 
         throw new IllegalArgumentException("El número de documento del proveedor es obligatorio.");
+    }
+
+    private void validarDuplicados(ProductoEntity actual, ProductoRequest request) {
+        if (productoRepository.existsByCodigoDeBarras(request.codigoDeBarras())
+                && (actual == null || actual.getCodigoDeBarras() != request.codigoDeBarras())) {
+            throw new IllegalArgumentException("Ya existe un producto con ese código de barras.");
+        }
+
+        String descripcion = request.descripcion() != null ? request.descripcion().trim() : "";
+        if (!descripcion.isBlank()) {
+            boolean descripcionEnUso = productoRepository.existsByDescripcionIgnoreCase(descripcion)
+                    && (actual == null || actual.getDescripcion() == null || !descripcion.equalsIgnoreCase(actual.getDescripcion()));
+            if (descripcionEnUso) {
+                throw new IllegalArgumentException("Ya existe un producto con esa descripción.");
+            }
+        }
     }
 
     @Transactional
