@@ -113,9 +113,7 @@ public class ProductoService {
     public void eliminarPorCodigo(int codigo) {
         ProductoEntity producto = productoRepository.findByCodigoDeBarras(codigo)
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
-        producto.setActivo(false);
-        producto.setFechaUltimoIngreso(new java.util.Date());
-        productoRepository.save(producto);
+        productoRepository.delete(producto);
     }
 
     @Transactional

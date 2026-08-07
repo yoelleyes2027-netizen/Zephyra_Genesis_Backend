@@ -4,6 +4,7 @@ import com.zephyra.genesis.dto.ProductoRequest;
 import com.zephyra.genesis.dto.ProductoResponse;
 import com.zephyra.genesis.dto.StockUpdateRequest;
 import com.zephyra.genesis.service.ProductoService;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -69,6 +70,8 @@ public class ProductoController {
             return ResponseEntity.ok(Map.of("ok", true, "mensaje", "Producto eliminado correctamente"));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(404).body(Map.of("ok", false, "mensaje", ex.getMessage()));
+        } catch (DataIntegrityViolationException ex) {
+            return ResponseEntity.status(409).body(Map.of("ok", false, "mensaje", "No se puede eliminar el producto porque tiene registros asociados."));
         }
     }
 
