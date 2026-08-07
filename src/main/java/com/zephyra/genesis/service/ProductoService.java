@@ -45,8 +45,7 @@ public class ProductoService {
 
     @Transactional
     public ProductoResponse crear(ProductoRequest request) {
-        ProveedorEntity proveedor = proveedorRepository.findById(request.proveedorId())
-                .orElseThrow(() -> new IllegalArgumentException("Proveedor no encontrado"));
+        ProveedorEntity proveedor = resolverProveedor(request);
         ProductoEntity producto = new ProductoEntity(
                 request.codigoDeBarras(),
                 true,
@@ -68,8 +67,7 @@ public class ProductoService {
     public ProductoResponse actualizarPorCodigo(int codigo, ProductoRequest request) {
         ProductoEntity producto = productoRepository.findByCodigoDeBarras(codigo)
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
-        ProveedorEntity proveedor = proveedorRepository.findById(request.proveedorId())
-                .orElseThrow(() -> new IllegalArgumentException("Proveedor no encontrado"));
+        ProveedorEntity proveedor = resolverProveedor(request);
         producto.setDescripcion(request.descripcion());
         producto.setPrecioVenta(request.precioVenta());
         producto.setPrecioCompra(request.precioCompra());
@@ -81,6 +79,16 @@ public class ProductoService {
         ProductoResponse response = toResponse(productoRepository.save(producto));
         etiquetaService.registrarDesdeProducto(producto.getEtiqueta());
         return response;
+    }
+
+    private ProveedorEntity resolverProveedor(ProductoRequest request) {
+        String numeroDocumento = request.proveedorNumeroDocumento() != null ? request.proveedorNumeroDocumento().trim() : "";
+        if (!numeroDocumento.isBlank()) {
+            return proveedorRepository.findByNumeroDocumentoIgnoreCase(numeroDocumento)
+                    .orElseThrow(() -> new IllegalArgumentException("Proveedor no encontrado"));
+        }
+
+        throw new IllegalArgumentException("El número de documento del proveedor es obligatorio.");
     }
 
     @Transactional
@@ -115,7 +123,7 @@ public class ProductoService {
                 producto.getStock(),
                 producto.getUnidadDeMedida(),
                 producto.getEtiqueta(),
-                producto.getproveedorId() != null ? producto.getproveedorId().getId() : null,
+                producto.getproveedorId() != null ? producto.getproveedorId().getNumeroDocumento() : null,
                 producto.getproveedorId() != null ? producto.getproveedorId().getRazonSocial() : null,
                 producto.isActivo()
         );
