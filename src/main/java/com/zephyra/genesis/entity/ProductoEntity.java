@@ -15,11 +15,11 @@ public class ProductoEntity {
     @Column(nullable = false)
     private boolean activo;
 
-    @Column(nullable = false)
+    @Column(name = "fechadeingreso", nullable = false)
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaDeIngreso;
 
-    @Column(nullable = false)
+    @Column(name = "fechaultimoingreso", nullable = false)
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaUltimoIngreso;
 
@@ -49,10 +49,27 @@ public class ProductoEntity {
     public ProductoEntity() {
     }
 
+    @PrePersist
+    protected void onCreate() {
+        if (fechaDeIngreso == null) {
+            fechaDeIngreso = new Date();
+        }
+        if (fechaUltimoIngreso == null) {
+            fechaUltimoIngreso = new Date();
+        }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        if (fechaUltimoIngreso == null) {
+            fechaUltimoIngreso = new Date();
+        }
+    }
+
     public ProductoEntity(int codigoDeBarras, boolean activo, Date fechaUltimoIngreso, int stock, UNIDAD_MEDIDA unidadDeMedida, float precioCompra, String descripcion, float precioVenta, String etiqueta, ProveedorEntity proveedorId) {
         this.codigoDeBarras = codigoDeBarras;
         this.activo = activo;
-        this.fechaDeIngreso = new Date(); // Set the current date as the default value for fechaDeIngreso
+        this.fechaDeIngreso = new Date();
         this.fechaUltimoIngreso = fechaUltimoIngreso != null ? fechaUltimoIngreso : new Date();
         this.stock = stock;
         this.unidadDeMedida = unidadDeMedida;
