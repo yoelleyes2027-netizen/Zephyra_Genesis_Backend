@@ -464,13 +464,13 @@ public class AdminSistemaService {
                     pr.stock,
                     pr.unidad_de_medida AS "unidadDeMedida",
                     pr.etiqueta,
-                    pr.proveedorid AS "proveedorId",
+                    pr.proveedor_id AS "proveedorId",
                     COALESCE(pp.razon_social, '') AS "proveedorNombre",
                     pr.activo,
                     pr.fecha_de_ingreso AS "fechaDeIngreso",
                     pr.fecha_ultimo_ingreso AS "fechaUltimoIngreso"
                 FROM producto pr
-                LEFT JOIN proveedor pv ON pv.id = pr.proveedorid
+                LEFT JOIN proveedor pv ON pv.id = pr.proveedor_id
                 LEFT JOIN persona pp ON pp.id = pv.id
                 ORDER BY pr.descripcion
                 """);

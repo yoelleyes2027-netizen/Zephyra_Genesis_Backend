@@ -1,0 +1,7 @@
+ALTER TABLE producto ALTER COLUMN codigodebarras DROP NOT NULL;
+ALTER TABLE producto ALTER COLUMN fechadeingreso DROP NOT NULL;
+ALTER TABLE producto ALTER COLUMN fechaultimoingreso DROP NOT NULL;
+ALTER TABLE producto ALTER COLUMN preciocompra DROP NOT NULL;
+ALTER TABLE producto ALTER COLUMN precioventa DROP NOT NULL;
+ALTER TABLE producto ALTER COLUMN unidaddemedida DROP NOT NULL;
+ALTER TABLE producto ALTER COLUMN proveedorid DROP NOT NULL;

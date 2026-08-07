@@ -9,10 +9,10 @@ public class ProductoEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true)
+    @Column(name = "codigo_de_barras", unique = true)
     private int codigoDeBarras;
 
-    @Column(nullable = false)
+    @Column(name = "activo", nullable = false)
     private boolean activo;
 
     @Column(name = "fecha_de_ingreso", nullable = false)
@@ -23,27 +23,27 @@ public class ProductoEntity {
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaUltimoIngreso;
 
-    @Column(nullable = false)
+    @Column(name = "stock", nullable = false)
     private int stock;
 
-    @Column(nullable = false)
+    @Column(name = "unidad_de_medida", nullable = false)
     @Enumerated(EnumType.STRING)
     private UNIDAD_MEDIDA unidadDeMedida;
 
-    @Column(nullable = false)
+    @Column(name = "precio_compra", nullable = false)
     private float precioCompra;
 
-    @Column(nullable = false, unique = true)
+    @Column(name = "descripcion", nullable = false, unique = true)
     private String descripcion;
 
-    @Column(nullable = false)
+    @Column(name = "precio_venta", nullable = false)
     private float precioVenta;
 
-    @Column(nullable = false)
+    @Column(name = "etiqueta", nullable = false)
     private String etiqueta;
 
     @ManyToOne
-    @JoinColumn(name = "proveedorId", nullable = false)
+    @JoinColumn(name = "proveedor_id", nullable = false)
     private ProveedorEntity proveedorId;
 
     public ProductoEntity() {
