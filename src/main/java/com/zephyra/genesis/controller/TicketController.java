@@ -1,5 +1,6 @@
 package com.zephyra.genesis.controller;
 
+import com.zephyra.genesis.dto.DetalleTicketKeyRequest;
 import com.zephyra.genesis.dto.TicketRequest;
 import com.zephyra.genesis.dto.TicketResponse;
 import com.zephyra.genesis.service.AuthService;
@@ -55,8 +56,8 @@ public class TicketController {
     }
 
     @PostMapping("/eliminar-articulos")
-    public ResponseEntity<?> eliminarArticulos(@RequestBody Map<String, List<Long>> body) {
-        ticketService.eliminarArticulos(body.getOrDefault("detalles_ids", List.of()));
+    public ResponseEntity<?> eliminarArticulos(@RequestBody Map<String, List<DetalleTicketKeyRequest>> body) {
+        ticketService.eliminarArticulos(body.getOrDefault("detalles", List.of()));
         return ResponseEntity.ok(Map.of("success", true, "mensaje", "Artículos eliminados correctamente y stock actualizado."));
     }
 

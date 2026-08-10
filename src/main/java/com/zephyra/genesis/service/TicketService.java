@@ -1,11 +1,13 @@
 package com.zephyra.genesis.service;
 
 import com.zephyra.genesis.dto.TicketDetalleResponse;
+import com.zephyra.genesis.dto.DetalleTicketKeyRequest;
 import com.zephyra.genesis.dto.TicketItemRequest;
 import com.zephyra.genesis.dto.TicketRequest;
 import com.zephyra.genesis.dto.TicketResponse;
 import com.zephyra.genesis.entity.ClienteEntity;
 import com.zephyra.genesis.entity.DetalleTicket;
+import com.zephyra.genesis.entity.DetalleTicketId;
 import com.zephyra.genesis.entity.ProductoEntity;
 import com.zephyra.genesis.repository.DetalleTicketRepository;
 import com.zephyra.genesis.entity.TicketEntity;
@@ -19,7 +21,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class TicketService {
@@ -52,9 +56,13 @@ public class TicketService {
         ticket.setCliente(cliente);
 
         List<DetalleTicket> detalles = new ArrayList<>();
+        Set<Long> productosIncluidos = new HashSet<>();
         float total = 0;
 
         for (TicketItemRequest item : request.detalleTickets()) {
+            if (item.productoId() == null || !productosIncluidos.add(item.productoId())) {
+                throw new IllegalArgumentException("Cada producto puede aparecer una sola vez por ticket.");
+            }
             ProductoEntity producto = productoRepository.findById(item.productoId())
                     .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
             DetalleTicket detalle = new DetalleTicket();
@@ -95,10 +103,13 @@ public class TicketService {
     }
 
     @Transactional
-    public void eliminarArticulos(List<Long> detallesIds) {
-        List<DetalleTicket> detalles = detalleTicketRepository.findAllById(detallesIds);
-        if (detalles.isEmpty() || detalles.size() != detallesIds.size()) {
-            throw new IllegalArgumentException("No se encontraron líneas activas para esos IDs.");
+    public void eliminarArticulos(List<DetalleTicketKeyRequest> detallesKeys) {
+        List<DetalleTicketId> detalleIds = detallesKeys.stream()
+                .map(detalle -> new DetalleTicketId(detalle.ticketId(), detalle.productoId()))
+                .toList();
+        List<DetalleTicket> detalles = detalleTicketRepository.findAllById(detalleIds);
+        if (detalles.isEmpty() || detalles.size() != detalleIds.size()) {
+            throw new IllegalArgumentException("No se encontraron líneas activas para las claves indicadas.");
         }
 
         for (DetalleTicket detalle : detalles) {
@@ -119,7 +130,7 @@ public class TicketService {
     private TicketResponse toResponse(TicketEntity ticket) {
         List<TicketDetalleResponse> detalleResponses = ticket.getDetalleTickets() == null ? List.of() : ticket.getDetalleTickets().stream()
                 .map(detalle -> new TicketDetalleResponse(
-                        detalle.getId(),
+                detalle.getTicket() != null ? detalle.getTicket().getId() : null,
                         detalle.getProducto() != null ? detalle.getProducto().getId() : null,
                         detalle.getProducto() != null ? detalle.getProducto().getDescripcion() : null,
                         detalle.getCantidad(),

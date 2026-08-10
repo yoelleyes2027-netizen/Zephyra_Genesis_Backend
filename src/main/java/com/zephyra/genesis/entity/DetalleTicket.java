@@ -4,15 +4,16 @@ import jakarta.persistence.*;
 @Entity
 @Table(name = "detalle_ticket")
 public class DetalleTicket {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    
+    @EmbeddedId
+    private DetalleTicketId id = new DetalleTicketId();
+
     @ManyToOne
+    @MapsId("ticketId")
     @JoinColumn(name = "ticket_id", nullable = false)
     private TicketEntity ticket;
 
     @ManyToOne
+    @MapsId("productoId")
     @JoinColumn(name = "producto_id", nullable = false)
     private ProductoEntity producto;
 
@@ -22,11 +23,11 @@ public class DetalleTicket {
     @Column(nullable = false)
     private float precioUnitario;
 
-    public Long getId() {
+    public DetalleTicketId getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(DetalleTicketId id) {
         this.id = id;
     }
 

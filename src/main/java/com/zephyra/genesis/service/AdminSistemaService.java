@@ -2,6 +2,7 @@ package com.zephyra.genesis.service;
 
 import com.zephyra.genesis.dto.UsuarioAdminRequest;
 import com.zephyra.genesis.dto.UsuarioAdminResponse;
+import com.zephyra.genesis.dto.DetalleTicketKeyRequest;
 import com.zephyra.genesis.entity.CajaDiariaEntity;
 import com.zephyra.genesis.entity.ClienteEntity;
 import com.zephyra.genesis.entity.DetalleTicket;
@@ -262,7 +263,7 @@ public class AdminSistemaService {
                 case "empresa", "empresas" -> eliminarEmpresaEnTenant(clave);
                 case "producto", "productos" -> eliminarProductoEnTenant(clave);
                 case "ticket", "tickets" -> ticketService.desactivar(parseLong(clave, "ticket"));
-                case "detalle_ticket", "detalle-ticket", "detalleticket" -> ticketService.eliminarArticulos(List.of(parseLong(clave, "detalle ticket")));
+                case "detalle_ticket", "detalle-ticket", "detalleticket" -> ticketService.eliminarArticulos(List.of(parseDetalleTicketKey(clave)));
                 default -> throw new IllegalArgumentException("La eliminación no está disponible para esta tabla.");
             }
             return null;
@@ -487,7 +488,7 @@ public class AdminSistemaService {
                     up.name AS "usuarioNombre",
                     t.cliente_id AS "clienteId",
                     cp.name AS "clienteNombre",
-                    COUNT(dt.id) AS "detalleCount"
+                    COUNT(dt.producto_id) AS "detalleCount"
                 FROM ticket t
                 LEFT JOIN usuario u ON u.id = t.usuario_id
                 LEFT JOIN persona up ON up.id = u.id
@@ -502,7 +503,6 @@ public class AdminSistemaService {
     private List<Map<String, Object>> listarDetallesTicketDesdeBase(String baseDatos) {
         return ejecutarConsulta(baseDatos, """
                 SELECT
-                    dt.id,
                     dt.ticket_id AS "ticketId",
                     dt.producto_id AS "productoId",
                     pr.descripcion AS "productoDescripcion",
@@ -510,7 +510,7 @@ public class AdminSistemaService {
                     dt.precio_unitario AS "precioUnitario"
                 FROM detalle_ticket dt
                 LEFT JOIN producto pr ON pr.id = dt.producto_id
-                ORDER BY dt.id DESC
+                ORDER BY dt.ticket_id DESC, dt.producto_id
                 """);
     }
 
@@ -638,7 +638,6 @@ public class AdminSistemaService {
 
     private Map<String, Object> toDetalleTicketMap(DetalleTicket detalle) {
         Map<String, Object> row = new HashMap<>();
-        row.put("id", detalle.getId());
         row.put("ticketId", detalle.getTicket() != null ? detalle.getTicket().getId() : null);
         row.put("productoId", detalle.getProducto() != null ? detalle.getProducto().getId() : null);
         row.put("productoDescripcion", detalle.getProducto() != null ? detalle.getProducto().getDescripcion() : null);
@@ -723,6 +722,19 @@ public class AdminSistemaService {
         } catch (Exception ex) {
             throw new IllegalArgumentException("El campo " + fieldName + " debe ser numérico.");
         }
+    }
+
+    private DetalleTicketKeyRequest parseDetalleTicketKey(String value) {
+        if (value == null) {
+            throw new IllegalArgumentException("La clave del detalle ticket es obligatoria.");
+        }
+        String[] parts = value.trim().split(":", -1);
+        if (parts.length != 2) {
+            throw new IllegalArgumentException("La clave del detalle ticket debe tener el formato ticketId:productoId.");
+        }
+        return new DetalleTicketKeyRequest(
+                parseLong(parts[0], "ticketId"),
+                parseLong(parts[1], "productoId"));
     }
 
     private int intValue(Map<String, Object> datos, String key, int fallback) {
