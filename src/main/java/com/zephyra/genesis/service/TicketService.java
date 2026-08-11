@@ -163,9 +163,6 @@ public class TicketService {
             if (descontarStock && !producto.isActivo()) {
                 throw new IllegalArgumentException("El producto " + producto.getDescripcion() + " no está activo.");
             }
-            if (descontarStock && producto.getStock() < item.cantidad()) {
-                throw new IllegalArgumentException("Stock insuficiente para " + producto.getDescripcion() + ".");
-            }
 
             float precioUnitario = descontarStock ? producto.getPrecioVenta() : item.precioUnitario();
             DetalleTicket detalle = new DetalleTicket();
