@@ -178,7 +178,7 @@ public class TicketService {
         }
 
         ticket.setDetalleTickets(detalles);
-        ticket.setMontoTotal(total);
+        ticket.setMontoTotal(devolucion ? -redondear(total) : redondear(total));
         asignarDatosDePago(ticket, formaDePago, tipoMoneda, montoPagado, total, devolucion);
         return ticketRepository.save(ticket);
     }
