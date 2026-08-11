@@ -20,6 +20,19 @@ public class TicketEntity {
     @Column(nullable = false)
     private float montoTotal;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo_moneda")
+    private TIPO_MONEDA tipoMoneda;
+
+    @Column(name = "monto_pagado")
+    private Float montoPagado;
+
+    @Column(name = "cambio_entregado")
+    private Float cambioEntregado;
+
+    @Column(nullable = false)
+    private boolean devolucion = false;
+
     @ManyToOne
     @JoinColumn(name = "usuario_id", nullable = false)
     private UsuarioEntity usuario;
@@ -61,6 +74,22 @@ public class TicketEntity {
         return montoTotal;
     }
 
+    public TIPO_MONEDA getTipoMoneda() {
+        return tipoMoneda;
+    }
+
+    public Float getMontoPagado() {
+        return montoPagado;
+    }
+
+    public Float getCambioEntregado() {
+        return cambioEntregado;
+    }
+
+    public boolean isDevolucion() {
+        return devolucion;
+    }
+
     public UsuarioEntity getUsuario() {
         return usuario;
     }
@@ -83,6 +112,22 @@ public class TicketEntity {
 
     public void setMontoTotal(float montoTotal) {
         this.montoTotal = montoTotal;
+    }
+
+    public void setTipoMoneda(TIPO_MONEDA tipoMoneda) {
+        this.tipoMoneda = tipoMoneda;
+    }
+
+    public void setMontoPagado(Float montoPagado) {
+        this.montoPagado = montoPagado;
+    }
+
+    public void setCambioEntregado(Float cambioEntregado) {
+        this.cambioEntregado = cambioEntregado;
+    }
+
+    public void setDevolucion(boolean devolucion) {
+        this.devolucion = devolucion;
     }
 
     public void setUsuario(UsuarioEntity usuario) {

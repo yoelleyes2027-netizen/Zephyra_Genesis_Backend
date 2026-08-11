@@ -1,6 +1,8 @@
 package com.zephyra.genesis.controller;
 
+import com.zephyra.genesis.dto.AutorizacionDevolucionRequest;
 import com.zephyra.genesis.dto.DetalleTicketKeyRequest;
+import com.zephyra.genesis.dto.DevolucionRequest;
 import com.zephyra.genesis.dto.TicketRequest;
 import com.zephyra.genesis.dto.TicketResponse;
 import com.zephyra.genesis.service.AuthService;
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -37,6 +40,30 @@ public class TicketController {
         Long usuarioId = obtenerUsuarioIdDesdeCookie(httpServletRequest);
         TicketResponse ticket = ticketService.crear(request, usuarioId);
         return ResponseEntity.status(201).body(Map.of("ok", true, "mensaje", "Ticket creado con éxito", "ticket_id", ticket.id()));
+    }
+
+    @PostMapping("/devoluciones/autorizacion")
+    public ResponseEntity<?> autorizarDevolucion(
+            @RequestBody AutorizacionDevolucionRequest request,
+            HttpServletRequest httpServletRequest) {
+        obtenerUsuarioIdDesdeCookie(httpServletRequest);
+        ticketService.autorizarDevolucion(request.cedula(), request.contraseña());
+        return ResponseEntity.ok(Map.of("ok", true, "mensaje", "Autorización aprobada."));
+    }
+
+    @PostMapping("/{ticketId}/devolucion")
+    public ResponseEntity<?> devolver(
+            @PathVariable Long ticketId,
+            @RequestBody DevolucionRequest request,
+            HttpServletRequest httpServletRequest) {
+        Long usuarioId = obtenerUsuarioIdDesdeCookie(httpServletRequest);
+        TicketResponse ticket = ticketService.devolver(ticketId, request, usuarioId);
+        Map<String, Object> response = new HashMap<>();
+        response.put("ok", true);
+        response.put("mensaje", "Devolución registrada y stock repuesto.");
+        response.put("ticket_id", ticket.id());
+        response.put("cambio_entregado", ticket.cambioEntregado());
+        return ResponseEntity.status(201).body(response);
     }
 
     @PutMapping("/desactivar")

@@ -2,6 +2,7 @@ package com.zephyra.genesis.service;
 
 import com.zephyra.genesis.dto.UsuarioAdminRequest;
 import com.zephyra.genesis.dto.UsuarioAdminResponse;
+import com.zephyra.genesis.dto.ConsumidorFinalResponse;
 import com.zephyra.genesis.dto.DetalleTicketKeyRequest;
 import com.zephyra.genesis.entity.CajaDiariaEntity;
 import com.zephyra.genesis.entity.ClienteEntity;
@@ -104,6 +105,79 @@ public class AdminSistemaService {
             }
         } catch (Exception ex) {
             throw new IllegalStateException("No se pudieron listar las bases de datos de RDS.", ex);
+        }
+    }
+
+    public ConsumidorFinalResponse asegurarConsumidorFinal(String baseDatos) {
+        String tenantDatabase = normalizeDatabaseName(baseDatos);
+        tenantDatabaseProvisioningService.ensureTenantDatabase(tenantDatabase);
+        DataSource tenantDataSource = tenantDataSourceFactory.getTenantDataSource(tenantDatabase);
+
+        try (Connection connection = tenantDataSource.getConnection()) {
+            connection.setAutoCommit(false);
+            try {
+                ConsumidorFinalResponse existente = buscarConsumidorFinal(connection);
+                if (existente != null) {
+                    connection.commit();
+                    return existente;
+                }
+
+                insertarConsumidorFinal(connection);
+                ajustarSecuenciaPersona(connection);
+                connection.commit();
+                return new ConsumidorFinalResponse(1L, "ConsumidorFinal", "consumidor.final@genesis.local", 0);
+            } catch (Exception ex) {
+                connection.rollback();
+                throw ex;
+            }
+        } catch (Exception ex) {
+            throw new IllegalStateException("No se pudo preparar el consumidor final en la BDD seleccionada.", ex);
+        }
+    }
+
+    private ConsumidorFinalResponse buscarConsumidorFinal(Connection connection) throws java.sql.SQLException {
+        try (PreparedStatement persona = connection.prepareStatement(
+                "SELECT name, email, telefono FROM persona WHERE id = 1 FOR UPDATE")) {
+            try (ResultSet resultSet = persona.executeQuery()) {
+                if (!resultSet.next()) {
+                    return null;
+                }
+
+                try (PreparedStatement clienteComun = connection.prepareStatement(
+                        "SELECT 1 FROM cliente_comun WHERE id = 1")) {
+                    try (ResultSet clienteComunResult = clienteComun.executeQuery()) {
+                        if (!clienteComunResult.next()) {
+                            throw new IllegalArgumentException(
+                                    "La BDD ya usa el id 1 para otra persona. No se puede reemplazar con ConsumidorFinal.");
+                        }
+                    }
+                }
+                return new ConsumidorFinalResponse(
+                        1L,
+                        resultSet.getString("name"),
+                        resultSet.getString("email"),
+                        resultSet.getInt("telefono"));
+            }
+        }
+    }
+
+    private void insertarConsumidorFinal(Connection connection) throws java.sql.SQLException {
+        try (PreparedStatement persona = connection.prepareStatement(
+                    "INSERT INTO persona (id, name, email, telefono, fecha_creacion) VALUES (1, ?, ?, ?, CURRENT_TIMESTAMP)");
+             PreparedStatement cliente = connection.prepareStatement("INSERT INTO cliente (id) VALUES (1)");
+             PreparedStatement clienteComun = connection.prepareStatement("INSERT INTO cliente_comun (id) VALUES (1)")) {
+            persona.setString(1, "ConsumidorFinal");
+            persona.setString(2, "consumidor.final@genesis.local");
+            persona.setInt(3, 0);
+            persona.executeUpdate();
+            cliente.executeUpdate();
+            clienteComun.executeUpdate();
+        }
+    }
+
+    private void ajustarSecuenciaPersona(Connection connection) throws java.sql.SQLException {
+        try (Statement statement = connection.createStatement()) {
+            statement.execute("SELECT setval(pg_get_serial_sequence('persona', 'id'), (SELECT MAX(id) FROM persona), true)");
         }
     }
 
@@ -484,6 +558,10 @@ public class AdminSistemaService {
                     t.fecha_creacion AS "fechaCreacion",
                     t.forma_de_pago AS "formaDePago",
                     t.monto_total AS "montoTotal",
+                    t.tipo_moneda AS "tipoMoneda",
+                    t.monto_pagado AS "montoPagado",
+                    t.cambio_entregado AS "cambioEntregado",
+                    t.devolucion,
                     t.usuario_id AS "usuarioId",
                     up.name AS "usuarioNombre",
                     t.cliente_id AS "clienteId",

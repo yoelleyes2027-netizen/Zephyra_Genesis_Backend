@@ -2,6 +2,7 @@ package com.zephyra.genesis.controller;
 
 import com.zephyra.genesis.dto.UsuarioAdminRequest;
 import com.zephyra.genesis.dto.UsuarioAdminResponse;
+import com.zephyra.genesis.dto.ConsumidorFinalResponse;
 import com.zephyra.genesis.service.AdminSistemaService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -34,6 +35,12 @@ public class AdminSistemaController {
     @GetMapping("/bases-datos")
     public ResponseEntity<?> listarBasesDeDatos() {
         return ResponseEntity.ok(Map.of("ok", true, "data", adminSistemaService.listarBasesDeDatos()));
+    }
+
+    @PostMapping("/consumidor-final")
+    public ResponseEntity<?> asegurarConsumidorFinal(@RequestParam String baseDatos) {
+        ConsumidorFinalResponse consumidor = adminSistemaService.asegurarConsumidorFinal(baseDatos);
+        return ResponseEntity.ok(Map.of("ok", true, "mensaje", "Consumidor final disponible", "data", consumidor));
     }
 
     @GetMapping("/tablas")

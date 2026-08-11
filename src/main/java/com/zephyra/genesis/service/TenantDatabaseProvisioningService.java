@@ -40,6 +40,7 @@ public class TenantDatabaseProvisioningService {
         }
         initializeSchema(tenantDatabase);
         normalizePersonaFechaCreacionColumn(tenantDatabase);
+        actualizarEsquemaTicket(tenantDatabase);
         backfillClienteComun(tenantDatabase);
     }
 
@@ -221,6 +222,19 @@ public class TenantDatabaseProvisioningService {
                     """);
         } catch (SQLException ex) {
             throw new IllegalStateException("No se pudo completar la tabla cliente_comun del tenant.", ex);
+        }
+    }
+
+    private void actualizarEsquemaTicket(String tenantDatabase) {
+        DataSource tenantDataSource = tenantDataSourceFactory.getTenantDataSource(tenantDatabase);
+        try (Connection connection = tenantDataSource.getConnection();
+             Statement statement = connection.createStatement()) {
+            statement.executeUpdate("ALTER TABLE ticket ADD COLUMN IF NOT EXISTS tipo_moneda VARCHAR(3)");
+            statement.executeUpdate("ALTER TABLE ticket ADD COLUMN IF NOT EXISTS monto_pagado REAL");
+            statement.executeUpdate("ALTER TABLE ticket ADD COLUMN IF NOT EXISTS cambio_entregado REAL");
+            statement.executeUpdate("ALTER TABLE ticket ADD COLUMN IF NOT EXISTS devolucion BOOLEAN NOT NULL DEFAULT FALSE");
+        } catch (SQLException ex) {
+            throw new IllegalStateException("No se pudo actualizar el esquema de ticket del tenant.", ex);
         }
     }
 
