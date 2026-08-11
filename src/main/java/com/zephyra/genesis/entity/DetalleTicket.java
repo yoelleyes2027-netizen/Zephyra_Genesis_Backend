@@ -20,7 +20,7 @@ public class DetalleTicket {
     @Column(nullable = false)
     private int cantidad;
 
-    @Column(nullable = false)
+    @Column(name = "precio_unitario", nullable = false)
     private float precioUnitario;
 
     public DetalleTicketId getId() {

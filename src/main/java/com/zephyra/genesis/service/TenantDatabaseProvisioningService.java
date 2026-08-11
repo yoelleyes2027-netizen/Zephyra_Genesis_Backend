@@ -230,10 +230,32 @@ public class TenantDatabaseProvisioningService {
         DataSource tenantDataSource = tenantDataSourceFactory.getTenantDataSource(tenantDatabase);
         try (Connection connection = tenantDataSource.getConnection();
              Statement statement = connection.createStatement()) {
+            statement.executeUpdate("ALTER TABLE ticket ADD COLUMN IF NOT EXISTS fecha_creacion TIMESTAMP");
+            statement.executeUpdate("ALTER TABLE ticket ADD COLUMN IF NOT EXISTS forma_de_pago VARCHAR(255)");
+            statement.executeUpdate("ALTER TABLE ticket ADD COLUMN IF NOT EXISTS monto_total REAL");
             statement.executeUpdate("ALTER TABLE ticket ADD COLUMN IF NOT EXISTS tipo_moneda VARCHAR(3)");
             statement.executeUpdate("ALTER TABLE ticket ADD COLUMN IF NOT EXISTS monto_pagado REAL");
             statement.executeUpdate("ALTER TABLE ticket ADD COLUMN IF NOT EXISTS cambio_entregado REAL");
             statement.executeUpdate("ALTER TABLE ticket ADD COLUMN IF NOT EXISTS devolucion BOOLEAN NOT NULL DEFAULT FALSE");
+
+            if (columnExists(connection, "ticket", "fechacreacion")) {
+                statement.executeUpdate("UPDATE ticket SET fecha_creacion = COALESCE(fecha_creacion, fechacreacion) WHERE fecha_creacion IS NULL");
+                statement.executeUpdate("ALTER TABLE ticket DROP COLUMN IF EXISTS fechacreacion");
+            }
+            if (columnExists(connection, "ticket", "formadepago")) {
+                statement.executeUpdate("UPDATE ticket SET forma_de_pago = COALESCE(forma_de_pago, formadepago) WHERE forma_de_pago IS NULL");
+                statement.executeUpdate("ALTER TABLE ticket DROP COLUMN IF EXISTS formadepago");
+            }
+            if (columnExists(connection, "ticket", "montototal")) {
+                statement.executeUpdate("UPDATE ticket SET monto_total = COALESCE(monto_total, montototal) WHERE monto_total IS NULL");
+                statement.executeUpdate("ALTER TABLE ticket DROP COLUMN IF EXISTS montototal");
+            }
+
+            statement.executeUpdate("ALTER TABLE detalle_ticket ADD COLUMN IF NOT EXISTS precio_unitario REAL");
+            if (columnExists(connection, "detalle_ticket", "preciounitario")) {
+                statement.executeUpdate("UPDATE detalle_ticket SET precio_unitario = COALESCE(precio_unitario, preciounitario) WHERE precio_unitario IS NULL");
+                statement.executeUpdate("ALTER TABLE detalle_ticket DROP COLUMN IF EXISTS preciounitario");
+            }
         } catch (SQLException ex) {
             throw new IllegalStateException("No se pudo actualizar el esquema de ticket del tenant.", ex);
         }

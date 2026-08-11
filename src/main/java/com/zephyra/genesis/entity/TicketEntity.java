@@ -9,15 +9,15 @@ public class TicketEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(name = "fecha_creacion", nullable = false)
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaCreacion;
 
-    @Column(nullable = false)
+    @Column(name = "forma_de_pago", nullable = false)
     @Enumerated(EnumType.STRING)
     private FORMA_DE_PAGO formaDePago;
 
-    @Column(nullable = false)
+    @Column(name = "monto_total", nullable = false)
     private float montoTotal;
 
     @Enumerated(EnumType.STRING)
