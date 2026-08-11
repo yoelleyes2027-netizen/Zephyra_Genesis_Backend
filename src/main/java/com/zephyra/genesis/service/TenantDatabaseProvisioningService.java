@@ -41,6 +41,7 @@ public class TenantDatabaseProvisioningService {
         initializeSchema(tenantDatabase);
         normalizePersonaFechaCreacionColumn(tenantDatabase);
         actualizarEsquemaTicket(tenantDatabase);
+        actualizarEsquemaCaja(tenantDatabase);
         backfillClienteComun(tenantDatabase);
     }
 
@@ -235,6 +236,40 @@ public class TenantDatabaseProvisioningService {
             statement.executeUpdate("ALTER TABLE ticket ADD COLUMN IF NOT EXISTS devolucion BOOLEAN NOT NULL DEFAULT FALSE");
         } catch (SQLException ex) {
             throw new IllegalStateException("No se pudo actualizar el esquema de ticket del tenant.", ex);
+        }
+    }
+
+    private void actualizarEsquemaCaja(String tenantDatabase) {
+        DataSource tenantDataSource = tenantDataSourceFactory.getTenantDataSource(tenantDatabase);
+        try (Connection connection = tenantDataSource.getConnection();
+             Statement statement = connection.createStatement()) {
+            statement.executeUpdate("ALTER TABLE caja_diaria ADD COLUMN IF NOT EXISTS fecha_inicio DATE");
+            statement.executeUpdate("ALTER TABLE caja_diaria ADD COLUMN IF NOT EXISTS diferencia_pos REAL NOT NULL DEFAULT 0");
+            statement.executeUpdate("ALTER TABLE caja_diaria ADD COLUMN IF NOT EXISTS diferencia_efectivo REAL NOT NULL DEFAULT 0");
+            statement.executeUpdate("""
+                    CREATE TABLE IF NOT EXISTS caja_global (
+                        id BIGSERIAL PRIMARY KEY,
+                        total_ingresos REAL NOT NULL DEFAULT 0,
+                        total_egresos REAL NOT NULL DEFAULT 0,
+                        fecha_inicio DATE,
+                        fecha_cierre DATE,
+                        diferencia REAL NOT NULL DEFAULT 0,
+                        diferencia_pos REAL NOT NULL DEFAULT 0,
+                        diferencia_efectivo REAL NOT NULL DEFAULT 0,
+                        pos_calculado REAL NOT NULL DEFAULT 0,
+                        pos_declarado REAL NOT NULL DEFAULT 0,
+                        efectivo_calculado INTEGER NOT NULL DEFAULT 0,
+                        efectivo_declarado INTEGER NOT NULL DEFAULT 0
+                    )
+                    """);
+            statement.executeUpdate("ALTER TABLE caja_diaria ADD COLUMN IF NOT EXISTS caja_global_id BIGINT");
+            statement.executeUpdate("ALTER TABLE caja_diaria DROP CONSTRAINT IF EXISTS fk_caja_diaria_caja_global");
+            statement.executeUpdate("""
+                    ALTER TABLE caja_diaria ADD CONSTRAINT fk_caja_diaria_caja_global
+                    FOREIGN KEY (caja_global_id) REFERENCES caja_global(id)
+                    """);
+        } catch (SQLException ex) {
+            throw new IllegalStateException("No se pudo actualizar el esquema de caja del tenant.", ex);
         }
     }
 

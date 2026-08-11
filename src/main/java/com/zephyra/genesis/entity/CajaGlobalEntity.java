@@ -1,15 +1,28 @@
 package com.zephyra.genesis.entity;
-import jakarta.persistence.*;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import jakarta.persistence.Temporal;
+import jakarta.persistence.TemporalType;
+
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
 @Entity
-@Table(name = "caja_diaria")
-public class CajaDiariaEntity {
+@Table(name = "caja_global")
+public class CajaGlobalEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
     @Column
     private float totalIngresos;
 
@@ -18,11 +31,11 @@ public class CajaDiariaEntity {
 
     @Column
     @Temporal(TemporalType.DATE)
-    private Date fechaCierre;
+    private Date fechaInicio;
 
     @Column
     @Temporal(TemporalType.DATE)
-    private Date fechaInicio;
+    private Date fechaCierre;
 
     @Column
     private float diferencia;
@@ -35,6 +48,7 @@ public class CajaDiariaEntity {
 
     @Column
     private float posCalculado;
+
     @Column
     private float posDeclarado;
 
@@ -44,29 +58,8 @@ public class CajaDiariaEntity {
     @Column
     private int efectivoDeclarado;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "caja_global_id")
-    private CajaGlobalEntity cajaGlobal;
-
-    @OneToMany(mappedBy = "cajaDiaria", cascade = CascadeType.ALL)
-    private List<UsuarioEntity> usuarios;
-
-    public CajaDiariaEntity() {
-    }
-
-    public CajaDiariaEntity(float totalIngresos, float totalEgresos, Date fechaCierre,
-         float diferencia, float posCalculado, float posDeclarado,
-          int efectivoCalculado, int efectivoDeclarado, List<UsuarioEntity> usuarios) {
-        this.totalIngresos = totalIngresos;
-        this.totalEgresos = totalEgresos;
-        this.fechaCierre = fechaCierre;
-        this.diferencia = diferencia;
-        this.posCalculado = posCalculado;
-        this.posDeclarado = posDeclarado;
-        this.efectivoCalculado = efectivoCalculado;
-        this.efectivoDeclarado = efectivoDeclarado;
-        this.usuarios = usuarios;
-    }
+    @OneToMany(mappedBy = "cajaGlobal", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<CajaDiariaEntity> cajasDiarias = new ArrayList<>();
 
     public Long getId() {
         return id;
@@ -80,12 +73,12 @@ public class CajaDiariaEntity {
         return totalEgresos;
     }
 
-    public Date getFechaCierre() {
-        return fechaCierre;
-    }
-
     public Date getFechaInicio() {
         return fechaInicio;
+    }
+
+    public Date getFechaCierre() {
+        return fechaCierre;
     }
 
     public float getDiferencia() {
@@ -116,12 +109,8 @@ public class CajaDiariaEntity {
         return efectivoDeclarado;
     }
 
-    public CajaGlobalEntity getCajaGlobal() {
-        return cajaGlobal;
-    }
-
-    public List<UsuarioEntity> getUsuarios() {
-        return usuarios;
+    public List<CajaDiariaEntity> getCajasDiarias() {
+        return cajasDiarias;
     }
 
     public void setId(Long id) {
@@ -136,12 +125,12 @@ public class CajaDiariaEntity {
         this.totalEgresos = totalEgresos;
     }
 
-    public void setFechaCierre(Date fechaCierre) {
-        this.fechaCierre = fechaCierre;
-    }
-
     public void setFechaInicio(Date fechaInicio) {
         this.fechaInicio = fechaInicio;
+    }
+
+    public void setFechaCierre(Date fechaCierre) {
+        this.fechaCierre = fechaCierre;
     }
 
     public void setDiferencia(float diferencia) {
@@ -172,11 +161,7 @@ public class CajaDiariaEntity {
         this.efectivoDeclarado = efectivoDeclarado;
     }
 
-    public void setCajaGlobal(CajaGlobalEntity cajaGlobal) {
-        this.cajaGlobal = cajaGlobal;
-    }
-
-    public void setUsuarios(List<UsuarioEntity> usuarios) {
-        this.usuarios = usuarios;
+    public void setCajasDiarias(List<CajaDiariaEntity> cajasDiarias) {
+        this.cajasDiarias = cajasDiarias;
     }
 }

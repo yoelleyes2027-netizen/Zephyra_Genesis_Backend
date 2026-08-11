@@ -729,12 +729,16 @@ public class AdminSistemaService {
         row.put("id", caja.getId());
         row.put("totalIngresos", caja.getTotalIngresos());
         row.put("totalEgresos", caja.getTotalEgresos());
+        row.put("fechaInicio", caja.getFechaInicio());
         row.put("fechaCierre", caja.getFechaCierre());
         row.put("diferencia", caja.getDiferencia());
+        row.put("diferenciaPos", caja.getDiferenciaPos());
+        row.put("diferenciaEfectivo", caja.getDiferenciaEfectivo());
         row.put("posCalculado", caja.getPosCalculado());
         row.put("posDeclarado", caja.getPosDeclarado());
         row.put("efectivoCalculado", caja.getEfectivoCalculado());
         row.put("efectivoDeclarado", caja.getEfectivoDeclarado());
+        row.put("cajaGlobalId", caja.getCajaGlobal() != null ? caja.getCajaGlobal().getId() : null);
         row.put("usuarios", caja.getUsuarios() != null ? caja.getUsuarios().stream().map(UsuarioEntity::getName).toList() : List.of());
         return row;
     }
