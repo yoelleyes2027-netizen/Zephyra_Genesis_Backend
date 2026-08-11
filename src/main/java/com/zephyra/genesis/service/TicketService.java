@@ -197,8 +197,8 @@ public class TicketService {
             float total,
             boolean devolucion) {
         if (formaDePago != FORMA_DE_PAGO.EFECTIVO) {
-            ticket.setTipoMoneda(null);
-            ticket.setMontoPagado(null);
+            ticket.setTipoMoneda(TIPO_MONEDA.UYU);
+            ticket.setMontoPagado(redondear(total));
             ticket.setCambioEntregado(null);
             return;
         }

@@ -237,6 +237,9 @@ public class TenantDatabaseProvisioningService {
             statement.executeUpdate("ALTER TABLE ticket ADD COLUMN IF NOT EXISTS monto_pagado REAL");
             statement.executeUpdate("ALTER TABLE ticket ADD COLUMN IF NOT EXISTS cambio_entregado REAL");
             statement.executeUpdate("ALTER TABLE ticket ADD COLUMN IF NOT EXISTS devolucion BOOLEAN NOT NULL DEFAULT FALSE");
+            statement.executeUpdate("ALTER TABLE ticket ALTER COLUMN tipo_moneda SET DEFAULT 'UYU'");
+            statement.executeUpdate("UPDATE ticket SET tipo_moneda = 'UYU' WHERE tipo_moneda IS NULL");
+            statement.executeUpdate("UPDATE ticket SET monto_pagado = monto_total WHERE forma_de_pago IN ('TARJETA','TRANSFERENCIA') AND monto_pagado IS NULL");
 
             if (columnExists(connection, "ticket", "fechacreacion")) {
                 statement.executeUpdate("UPDATE ticket SET fecha_creacion = COALESCE(fecha_creacion, fechacreacion) WHERE fecha_creacion IS NULL");
