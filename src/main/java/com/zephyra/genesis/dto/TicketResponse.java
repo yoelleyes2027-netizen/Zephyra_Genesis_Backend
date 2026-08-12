@@ -16,5 +16,6 @@ public record TicketResponse(
 	Float montoPagado,
 	Float cambioEntregado,
 	boolean devolucion,
+	boolean devolucionRealizada,
 	List<TicketDetalleResponse> detalleTickets) {
 }

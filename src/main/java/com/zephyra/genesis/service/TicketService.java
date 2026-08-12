@@ -89,6 +89,9 @@ public class TicketService {
         if (ticketOriginal.isDevolucion()) {
             throw new IllegalArgumentException("No se puede devolver un ticket que ya corresponde a una devolución.");
         }
+        if (ticketOriginal.isDevolucionRealizada()) {
+            throw new IllegalArgumentException("Este ticket ya tiene una devolución realizada.");
+        }
 
         UsuarioEntity usuario = usuarioRepository.findById(usuarioId)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
@@ -114,6 +117,9 @@ public class TicketService {
                 detalles,
                 true,
                 false);
+
+            ticketOriginal.setDevolucionRealizada(true);
+            ticketRepository.save(ticketOriginal);
         return toResponse(devolucion);
     }
 
@@ -303,6 +309,7 @@ public class TicketService {
                 ticket.getMontoPagado(),
                 ticket.getCambioEntregado(),
                 ticket.isDevolucion(),
+                ticket.isDevolucionRealizada(),
                 detalleResponses
         );
     }
