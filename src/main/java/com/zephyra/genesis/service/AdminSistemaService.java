@@ -562,6 +562,9 @@ public class AdminSistemaService {
                     t.monto_pagado AS "montoPagado",
                     t.cambio_entregado AS "cambioEntregado",
                     t.devolucion,
+                    t.devolucion_realizada AS "devolucionRealizada",
+                    t.egreso,
+                    t.egresos_descripcion AS "egresosDescripcion",
                     t.usuario_id AS "usuarioId",
                     up.name AS "usuarioNombre",
                     t.cliente_id AS "clienteId",
@@ -598,17 +601,21 @@ public class AdminSistemaService {
                     c.id,
                     c.total_ingresos AS "totalIngresos",
                     c.total_egresos AS "totalEgresos",
+                    c.transferencia_calculada AS "transferenciaCalculada",
+                    c.fecha_inicio AS "fechaInicio",
                     c.fecha_cierre AS "fechaCierre",
                     c.diferencia,
+                    c.diferencia_pos AS "diferenciaPos",
+                    c.diferencia_efectivo AS "diferenciaEfectivo",
                     c.pos_calculado AS "posCalculado",
                     c.pos_declarado AS "posDeclarado",
                     c.efectivo_calculado AS "efectivoCalculado",
                     c.efectivo_declarado AS "efectivoDeclarado",
-                    COALESCE(string_agg(p.name, ', '), '') AS "usuarios"
+                    p.name AS "usuarioNombre",
+                    c.usuario_id AS "usuarioId"
                 FROM caja_diaria c
-                LEFT JOIN usuario u ON u.caja_diaria_id = c.id
+                LEFT JOIN usuario u ON u.id = c.usuario_id
                 LEFT JOIN persona p ON p.id = u.id
-                GROUP BY c.id
                 ORDER BY c.id DESC
                 """);
     }
@@ -706,6 +713,8 @@ public class AdminSistemaService {
         row.put("fechaCreacion", ticket.getFechaCreacion());
         row.put("formaDePago", ticket.getFormaDePago() != null ? ticket.getFormaDePago().name() : null);
         row.put("montoTotal", ticket.getMontoTotal());
+        row.put("egreso", ticket.isEgreso());
+        row.put("egresosDescripcion", ticket.getEgresosDescripcion());
         row.put("usuarioId", ticket.getUsuario() != null ? ticket.getUsuario().getId() : null);
         row.put("usuarioNombre", ticket.getUsuario() != null ? ticket.getUsuario().getName() : null);
         row.put("clienteId", ticket.getCliente() != null ? ticket.getCliente().getId() : null);
@@ -729,6 +738,7 @@ public class AdminSistemaService {
         row.put("id", caja.getId());
         row.put("totalIngresos", caja.getTotalIngresos());
         row.put("totalEgresos", caja.getTotalEgresos());
+        row.put("transferenciaCalculada", caja.getTransferenciaCalculada());
         row.put("fechaInicio", caja.getFechaInicio());
         row.put("fechaCierre", caja.getFechaCierre());
         row.put("diferencia", caja.getDiferencia());
@@ -739,7 +749,8 @@ public class AdminSistemaService {
         row.put("efectivoCalculado", caja.getEfectivoCalculado());
         row.put("efectivoDeclarado", caja.getEfectivoDeclarado());
         row.put("cajaGlobalId", caja.getCajaGlobal() != null ? caja.getCajaGlobal().getId() : null);
-        row.put("usuarios", caja.getUsuarios() != null ? caja.getUsuarios().stream().map(UsuarioEntity::getName).toList() : List.of());
+        row.put("usuarioId", caja.getUsuario() != null ? caja.getUsuario().getId() : null);
+        row.put("usuarioNombre", caja.getUsuario() != null ? caja.getUsuario().getName() : null);
         return row;
     }
 

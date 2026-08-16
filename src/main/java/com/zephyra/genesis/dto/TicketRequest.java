@@ -10,5 +10,7 @@ public record TicketRequest(
 	FORMA_DE_PAGO formaDePago,
 	List<TicketItemRequest> detalleTickets,
 	TIPO_MONEDA tipoMoneda,
-	Float montoPagado) {
+	Float montoPagado,
+	Boolean egreso,
+	String egresosDescripcion) {
 }

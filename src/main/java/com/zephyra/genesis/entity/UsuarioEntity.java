@@ -27,8 +27,7 @@ public class UsuarioEntity extends PersonaEntity {
     @Column
     private Date fechaInicioDeDia;
 
-    @ManyToOne
-    @JoinColumn(name = "caja_diaria_id")
+    @OneToOne(mappedBy = "usuario", fetch = FetchType.LAZY)
     private CajaDiariaEntity cajaDiaria;
 
     @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, orphanRemoval = true)

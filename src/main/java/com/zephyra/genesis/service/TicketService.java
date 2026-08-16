@@ -76,6 +76,8 @@ public class TicketService {
                 request.formaDePago(),
                 request.tipoMoneda(),
                 request.montoPagado(),
+            request.egreso(),
+            request.egresosDescripcion(),
                 request.detalleTickets(),
                 false,
                 true);
@@ -114,6 +116,8 @@ public class TicketService {
                 request.formaDePago(),
                 request.tipoMoneda(),
                 request.montoPagado(),
+            false,
+            null,
                 detalles,
                 true,
                 false);
@@ -142,6 +146,8 @@ public class TicketService {
             FORMA_DE_PAGO formaDePago,
             TIPO_MONEDA tipoMoneda,
             Float montoPagado,
+            Boolean egreso,
+            String egresosDescripcion,
             List<TicketItemRequest> items,
             boolean devolucion,
             boolean descontarStock) {
@@ -155,6 +161,8 @@ public class TicketService {
         ticket.setUsuario(usuario);
         ticket.setCliente(cliente);
         ticket.setDevolucion(devolucion);
+        ticket.setEgreso(Boolean.TRUE.equals(egreso));
+        ticket.setEgresosDescripcion(ticket.isEgreso() ? egresosDescripcion : null);
 
         List<DetalleTicket> detalles = new ArrayList<>();
         Set<Long> productosIncluidos = new HashSet<>();
@@ -310,6 +318,8 @@ public class TicketService {
                 ticket.getCambioEntregado(),
                 ticket.isDevolucion(),
                 ticket.isDevolucionRealizada(),
+                ticket.isEgreso(),
+                ticket.getEgresosDescripcion(),
                 detalleResponses
         );
     }

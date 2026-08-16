@@ -4,6 +4,7 @@ import com.zephyra.genesis.dto.AuthUserResponse;
 import com.zephyra.genesis.dto.LoginRequest;
 import com.zephyra.genesis.dto.RegisterRequest;
 import com.zephyra.genesis.service.AuthService;
+import com.zephyra.genesis.service.CajaService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -24,9 +25,11 @@ public class AuthController {
 
     private static final String TOKEN_COOKIE = "token";
     private final AuthService authService;
+    private final CajaService cajaService;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, CajaService cajaService) {
         this.authService = authService;
+        this.cajaService = cajaService;
     }
 
     @PostMapping("/register")
@@ -65,7 +68,18 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<?> logout(HttpServletResponse response) {
+    public ResponseEntity<?> logout(
+            @CookieValue(value = TOKEN_COOKIE, required = false) String token,
+            HttpServletResponse response) {
+        try {
+            AuthUserResponse usuario = authService.validarToken(token);
+            cajaService.validarCierreParaLogout(usuario);
+        } catch (IllegalStateException ex) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(java.util.Map.of("ok", false, "msg", ex.getMessage()));
+        } catch (IllegalArgumentException ignored) {
+        }
+
         response.addHeader(HttpHeaders.SET_COOKIE, ResponseCookie.from(TOKEN_COOKIE, "")
                 .path("/")
                 .httpOnly(true)
@@ -73,7 +87,7 @@ public class AuthController {
                 .maxAge(0)
                 .build()
                 .toString());
-        return ResponseEntity.ok(java.util.Map.of("mensaje", "Sesión cerrada correctamente"));
+        return ResponseEntity.ok(java.util.Map.of("ok", true, "mensaje", "Sesión cerrada correctamente"));
     }
 
     private ResponseCookie buildTokenCookie(String token) {

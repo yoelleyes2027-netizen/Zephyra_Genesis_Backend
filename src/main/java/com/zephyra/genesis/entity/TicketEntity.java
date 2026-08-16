@@ -36,6 +36,12 @@ public class TicketEntity {
     @Column(name = "devolucion_realizada", nullable = false)
     private boolean devolucionRealizada = false;
 
+    @Column(name = "egresos_descripcion")
+    private String egresosDescripcion;
+
+    @Column(name = "egreso", nullable = false)
+    private boolean egreso = false;
+
     @ManyToOne
     @JoinColumn(name = "usuario_id", nullable = false)
     private UsuarioEntity usuario;
@@ -97,6 +103,14 @@ public class TicketEntity {
         return devolucionRealizada;
     }
 
+    public String getEgresosDescripcion() {
+        return egresosDescripcion;
+    }
+
+    public boolean isEgreso() {
+        return egreso;
+    }
+
     public UsuarioEntity getUsuario() {
         return usuario;
     }
@@ -139,6 +153,14 @@ public class TicketEntity {
 
     public void setDevolucionRealizada(boolean devolucionRealizada) {
         this.devolucionRealizada = devolucionRealizada;
+    }
+
+    public void setEgresosDescripcion(String egresosDescripcion) {
+        this.egresosDescripcion = egresosDescripcion;
+    }
+
+    public void setEgreso(boolean egreso) {
+        this.egreso = egreso;
     }
 
     public void setUsuario(UsuarioEntity usuario) {

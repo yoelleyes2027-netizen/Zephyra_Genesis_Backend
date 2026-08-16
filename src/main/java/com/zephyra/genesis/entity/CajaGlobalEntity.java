@@ -24,12 +24,12 @@ public class CajaGlobalEntity {
     private Long id;
 
     @Column
-    private float totalIngresos;
+    private Float totalIngresos;
 
     @Column
-    private float totalEgresos;
+    private Float totalEgresos;
 
-    @Column
+    @Column(nullable = false)
     @Temporal(TemporalType.DATE)
     private Date fechaInicio;
 
@@ -38,38 +38,45 @@ public class CajaGlobalEntity {
     private Date fechaCierre;
 
     @Column
-    private float diferencia;
+    private Float diferencia;
 
     @Column
-    private float diferenciaPos;
+    private Float diferenciaPos;
 
     @Column
-    private float diferenciaEfectivo;
+    private Float diferenciaEfectivo;
 
     @Column
-    private float posCalculado;
+    private Float posCalculado;
 
     @Column
-    private float posDeclarado;
+    private Float posDeclarado;
 
     @Column
-    private int efectivoCalculado;
+    private Integer efectivoCalculado;
 
     @Column
-    private int efectivoDeclarado;
+    private Integer efectivoDeclarado;
 
     @OneToMany(mappedBy = "cajaGlobal", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<CajaDiariaEntity> cajasDiarias = new ArrayList<>();
+
+    public CajaGlobalEntity() {
+    }
+
+    public CajaGlobalEntity(Date fechaInicio) {
+        this.fechaInicio = fechaInicio;
+    }
 
     public Long getId() {
         return id;
     }
 
-    public float getTotalIngresos() {
+    public Float getTotalIngresos() {
         return totalIngresos;
     }
 
-    public float getTotalEgresos() {
+    public Float getTotalEgresos() {
         return totalEgresos;
     }
 
@@ -81,31 +88,31 @@ public class CajaGlobalEntity {
         return fechaCierre;
     }
 
-    public float getDiferencia() {
+    public Float getDiferencia() {
         return diferencia;
     }
 
-    public float getDiferenciaPos() {
+    public Float getDiferenciaPos() {
         return diferenciaPos;
     }
 
-    public float getDiferenciaEfectivo() {
+    public Float getDiferenciaEfectivo() {
         return diferenciaEfectivo;
     }
 
-    public float getPosCalculado() {
+    public Float getPosCalculado() {
         return posCalculado;
     }
 
-    public float getPosDeclarado() {
+    public Float getPosDeclarado() {
         return posDeclarado;
     }
 
-    public int getEfectivoCalculado() {
+    public Integer getEfectivoCalculado() {
         return efectivoCalculado;
     }
 
-    public int getEfectivoDeclarado() {
+    public Integer getEfectivoDeclarado() {
         return efectivoDeclarado;
     }
 
@@ -117,11 +124,11 @@ public class CajaGlobalEntity {
         this.id = id;
     }
 
-    public void setTotalIngresos(float totalIngresos) {
+    public void setTotalIngresos(Float totalIngresos) {
         this.totalIngresos = totalIngresos;
     }
 
-    public void setTotalEgresos(float totalEgresos) {
+    public void setTotalEgresos(Float totalEgresos) {
         this.totalEgresos = totalEgresos;
     }
 
@@ -133,31 +140,31 @@ public class CajaGlobalEntity {
         this.fechaCierre = fechaCierre;
     }
 
-    public void setDiferencia(float diferencia) {
+    public void setDiferencia(Float diferencia) {
         this.diferencia = diferencia;
     }
 
-    public void setDiferenciaPos(float diferenciaPos) {
+    public void setDiferenciaPos(Float diferenciaPos) {
         this.diferenciaPos = diferenciaPos;
     }
 
-    public void setDiferenciaEfectivo(float diferenciaEfectivo) {
+    public void setDiferenciaEfectivo(Float diferenciaEfectivo) {
         this.diferenciaEfectivo = diferenciaEfectivo;
     }
 
-    public void setPosCalculado(float posCalculado) {
+    public void setPosCalculado(Float posCalculado) {
         this.posCalculado = posCalculado;
     }
 
-    public void setPosDeclarado(float posDeclarado) {
+    public void setPosDeclarado(Float posDeclarado) {
         this.posDeclarado = posDeclarado;
     }
 
-    public void setEfectivoCalculado(int efectivoCalculado) {
+    public void setEfectivoCalculado(Integer efectivoCalculado) {
         this.efectivoCalculado = efectivoCalculado;
     }
 
-    public void setEfectivoDeclarado(int efectivoDeclarado) {
+    public void setEfectivoDeclarado(Integer efectivoDeclarado) {
         this.efectivoDeclarado = efectivoDeclarado;
     }
 

@@ -1,7 +1,6 @@
 package com.zephyra.genesis.entity;
 import jakarta.persistence.*;
 import java.util.Date;
-import java.util.List;
 
 @Entity
 @Table(name = "caja_diaria")
@@ -15,6 +14,9 @@ public class CajaDiariaEntity {
 
     @Column
     private float totalEgresos;
+
+    @Column(name = "transferencia_calculada")
+    private float transferenciaCalculada;
 
     @Column
     @Temporal(TemporalType.DATE)
@@ -48,24 +50,11 @@ public class CajaDiariaEntity {
     @JoinColumn(name = "caja_global_id")
     private CajaGlobalEntity cajaGlobal;
 
-    @OneToMany(mappedBy = "cajaDiaria", cascade = CascadeType.ALL)
-    private List<UsuarioEntity> usuarios;
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "usuario_id")
+    private UsuarioEntity usuario;
 
     public CajaDiariaEntity() {
-    }
-
-    public CajaDiariaEntity(float totalIngresos, float totalEgresos, Date fechaCierre,
-         float diferencia, float posCalculado, float posDeclarado,
-          int efectivoCalculado, int efectivoDeclarado, List<UsuarioEntity> usuarios) {
-        this.totalIngresos = totalIngresos;
-        this.totalEgresos = totalEgresos;
-        this.fechaCierre = fechaCierre;
-        this.diferencia = diferencia;
-        this.posCalculado = posCalculado;
-        this.posDeclarado = posDeclarado;
-        this.efectivoCalculado = efectivoCalculado;
-        this.efectivoDeclarado = efectivoDeclarado;
-        this.usuarios = usuarios;
     }
 
     public Long getId() {
@@ -78,6 +67,10 @@ public class CajaDiariaEntity {
 
     public float getTotalEgresos() {
         return totalEgresos;
+    }
+
+    public float getTransferenciaCalculada() {
+        return transferenciaCalculada;
     }
 
     public Date getFechaCierre() {
@@ -120,8 +113,8 @@ public class CajaDiariaEntity {
         return cajaGlobal;
     }
 
-    public List<UsuarioEntity> getUsuarios() {
-        return usuarios;
+    public UsuarioEntity getUsuario() {
+        return usuario;
     }
 
     public void setId(Long id) {
@@ -134,6 +127,10 @@ public class CajaDiariaEntity {
 
     public void setTotalEgresos(float totalEgresos) {
         this.totalEgresos = totalEgresos;
+    }
+
+    public void setTransferenciaCalculada(float transferenciaCalculada) {
+        this.transferenciaCalculada = transferenciaCalculada;
     }
 
     public void setFechaCierre(Date fechaCierre) {
@@ -176,7 +173,7 @@ public class CajaDiariaEntity {
         this.cajaGlobal = cajaGlobal;
     }
 
-    public void setUsuarios(List<UsuarioEntity> usuarios) {
-        this.usuarios = usuarios;
+    public void setUsuario(UsuarioEntity usuario) {
+        this.usuario = usuario;
     }
 }

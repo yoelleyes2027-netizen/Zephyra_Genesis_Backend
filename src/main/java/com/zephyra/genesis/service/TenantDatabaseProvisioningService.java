@@ -238,6 +238,8 @@ public class TenantDatabaseProvisioningService {
             statement.executeUpdate("ALTER TABLE ticket ADD COLUMN IF NOT EXISTS cambio_entregado REAL");
             statement.executeUpdate("ALTER TABLE ticket ADD COLUMN IF NOT EXISTS devolucion BOOLEAN NOT NULL DEFAULT FALSE");
             statement.executeUpdate("ALTER TABLE ticket ADD COLUMN IF NOT EXISTS devolucion_realizada BOOLEAN NOT NULL DEFAULT FALSE");
+            statement.executeUpdate("ALTER TABLE ticket ADD COLUMN IF NOT EXISTS egreso BOOLEAN NOT NULL DEFAULT FALSE");
+            statement.executeUpdate("ALTER TABLE ticket ADD COLUMN IF NOT EXISTS egresos_descripcion VARCHAR(255)");
             statement.executeUpdate("ALTER TABLE ticket ALTER COLUMN tipo_moneda SET DEFAULT 'UYU'");
             statement.executeUpdate("UPDATE ticket SET tipo_moneda = 'UYU' WHERE tipo_moneda IS NULL");
             statement.executeUpdate("UPDATE ticket SET monto_pagado = monto_total WHERE forma_de_pago IN ('TARJETA','TRANSFERENCIA') AND monto_pagado IS NULL");
@@ -270,30 +272,66 @@ public class TenantDatabaseProvisioningService {
         try (Connection connection = tenantDataSource.getConnection();
              Statement statement = connection.createStatement()) {
             statement.executeUpdate("ALTER TABLE caja_diaria ADD COLUMN IF NOT EXISTS fecha_inicio DATE");
+            statement.executeUpdate("ALTER TABLE caja_diaria ADD COLUMN IF NOT EXISTS transferencia_calculada REAL");
             statement.executeUpdate("ALTER TABLE caja_diaria ADD COLUMN IF NOT EXISTS diferencia_pos REAL NOT NULL DEFAULT 0");
             statement.executeUpdate("ALTER TABLE caja_diaria ADD COLUMN IF NOT EXISTS diferencia_efectivo REAL NOT NULL DEFAULT 0");
             statement.executeUpdate("""
                     CREATE TABLE IF NOT EXISTS caja_global (
                         id BIGSERIAL PRIMARY KEY,
-                        total_ingresos REAL NOT NULL DEFAULT 0,
-                        total_egresos REAL NOT NULL DEFAULT 0,
-                        fecha_inicio DATE,
+                        total_ingresos REAL,
+                        total_egresos REAL,
+                        fecha_inicio DATE NOT NULL,
                         fecha_cierre DATE,
-                        diferencia REAL NOT NULL DEFAULT 0,
-                        diferencia_pos REAL NOT NULL DEFAULT 0,
-                        diferencia_efectivo REAL NOT NULL DEFAULT 0,
-                        pos_calculado REAL NOT NULL DEFAULT 0,
-                        pos_declarado REAL NOT NULL DEFAULT 0,
-                        efectivo_calculado INTEGER NOT NULL DEFAULT 0,
-                        efectivo_declarado INTEGER NOT NULL DEFAULT 0
+                        diferencia REAL,
+                        diferencia_pos REAL,
+                        diferencia_efectivo REAL,
+                        pos_calculado REAL,
+                        pos_declarado REAL,
+                        efectivo_calculado INTEGER,
+                        efectivo_declarado INTEGER
                     )
                     """);
+            statement.executeUpdate("UPDATE caja_global SET fecha_inicio = CURRENT_DATE WHERE fecha_inicio IS NULL");
+            statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN fecha_inicio SET NOT NULL");
+            statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN total_ingresos DROP NOT NULL");
+            statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN total_egresos DROP NOT NULL");
+            statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN diferencia DROP NOT NULL");
+            statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN diferencia_pos DROP NOT NULL");
+            statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN diferencia_efectivo DROP NOT NULL");
+            statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN pos_calculado DROP NOT NULL");
+            statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN pos_declarado DROP NOT NULL");
+            statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN efectivo_calculado DROP NOT NULL");
+            statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN efectivo_declarado DROP NOT NULL");
+
             statement.executeUpdate("ALTER TABLE caja_diaria ADD COLUMN IF NOT EXISTS caja_global_id BIGINT");
             statement.executeUpdate("ALTER TABLE caja_diaria DROP CONSTRAINT IF EXISTS fk_caja_diaria_caja_global");
             statement.executeUpdate("""
                     ALTER TABLE caja_diaria ADD CONSTRAINT fk_caja_diaria_caja_global
                     FOREIGN KEY (caja_global_id) REFERENCES caja_global(id)
                     """);
+
+            statement.executeUpdate("ALTER TABLE caja_diaria ADD COLUMN IF NOT EXISTS usuario_id BIGINT");
+            statement.executeUpdate("""
+                    DO $$
+                    BEGIN
+                        IF EXISTS (
+                            SELECT 1 FROM information_schema.columns
+                            WHERE table_name = 'usuario' AND column_name = 'caja_diaria_id'
+                        ) THEN
+                            UPDATE caja_diaria cd
+                            SET usuario_id = u.id
+                            FROM usuario u
+                            WHERE u.caja_diaria_id = cd.id
+                              AND cd.usuario_id IS NULL;
+                        END IF;
+                    END $$;
+                    """);
+            statement.executeUpdate("ALTER TABLE caja_diaria DROP CONSTRAINT IF EXISTS fk_caja_diaria_usuario");
+            statement.executeUpdate("""
+                    ALTER TABLE caja_diaria ADD CONSTRAINT fk_caja_diaria_usuario
+                    FOREIGN KEY (usuario_id) REFERENCES usuario(id)
+                    """);
+            statement.executeUpdate("CREATE UNIQUE INDEX IF NOT EXISTS ux_caja_diaria_usuario_id ON caja_diaria(usuario_id)");
         } catch (SQLException ex) {
             throw new IllegalStateException("No se pudo actualizar el esquema de caja del tenant.", ex);
         }
@@ -312,7 +350,7 @@ public class TenantDatabaseProvisioningService {
 
     private void insertUsuario(Connection connection, UsuarioEntity usuario) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement(
-                "INSERT INTO usuario (id, cedula, password, rol, tenant_database, foto_perfil, fecha_inicio_de_dia, caja_diaria_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");) {
+                "INSERT INTO usuario (id, cedula, password, rol, tenant_database, foto_perfil, fecha_inicio_de_dia) VALUES (?, ?, ?, ?, ?, ?, ?)");) {
             statement.setLong(1, usuario.getId());
             statement.setInt(2, usuario.getCedula());
             statement.setString(3, usuario.getPassword());
@@ -320,30 +358,20 @@ public class TenantDatabaseProvisioningService {
             statement.setString(5, usuario.getTenantDatabase());
             statement.setBytes(6, usuario.getFotoPerfil());
             statement.setTimestamp(7, toTimestamp(usuario.getFechaInicioDeDia()));
-            if (usuario.getCajaDiaria() != null && usuario.getCajaDiaria().getId() != null) {
-                statement.setLong(8, usuario.getCajaDiaria().getId());
-            } else {
-                statement.setNull(8, java.sql.Types.BIGINT);
-            }
             statement.executeUpdate();
         }
     }
 
     private void updateUsuario(Connection connection, UsuarioEntity usuario) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement(
-                "UPDATE usuario SET cedula = ?, password = ?, rol = ?, tenant_database = ?, foto_perfil = ?, fecha_inicio_de_dia = ?, caja_diaria_id = ? WHERE id = ?")) {
+                "UPDATE usuario SET cedula = ?, password = ?, rol = ?, tenant_database = ?, foto_perfil = ?, fecha_inicio_de_dia = ? WHERE id = ?")) {
             statement.setInt(1, usuario.getCedula());
             statement.setString(2, usuario.getPassword());
             statement.setString(3, usuario.getRol() != null ? usuario.getRol().name() : null);
             statement.setString(4, usuario.getTenantDatabase());
             statement.setBytes(5, usuario.getFotoPerfil());
             statement.setTimestamp(6, toTimestamp(usuario.getFechaInicioDeDia()));
-            if (usuario.getCajaDiaria() != null && usuario.getCajaDiaria().getId() != null) {
-                statement.setLong(7, usuario.getCajaDiaria().getId());
-            } else {
-                statement.setNull(7, java.sql.Types.BIGINT);
-            }
-            statement.setLong(8, usuario.getId());
+            statement.setLong(7, usuario.getId());
             statement.executeUpdate();
         }
     }
