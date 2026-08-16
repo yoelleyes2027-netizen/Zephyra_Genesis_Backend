@@ -302,6 +302,15 @@ public class TenantDatabaseProvisioningService {
             statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN pos_declarado DROP NOT NULL");
             statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN efectivo_calculado DROP NOT NULL");
             statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN efectivo_declarado DROP NOT NULL");
+            statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN total_ingresos DROP DEFAULT");
+            statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN total_egresos DROP DEFAULT");
+            statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN diferencia DROP DEFAULT");
+            statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN diferencia_pos DROP DEFAULT");
+            statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN diferencia_efectivo DROP DEFAULT");
+            statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN pos_calculado DROP DEFAULT");
+            statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN pos_declarado DROP DEFAULT");
+            statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN efectivo_calculado DROP DEFAULT");
+            statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN efectivo_declarado DROP DEFAULT");
 
             statement.executeUpdate("ALTER TABLE caja_diaria ADD COLUMN IF NOT EXISTS caja_global_id BIGINT");
             statement.executeUpdate("ALTER TABLE caja_diaria DROP CONSTRAINT IF EXISTS fk_caja_diaria_caja_global");

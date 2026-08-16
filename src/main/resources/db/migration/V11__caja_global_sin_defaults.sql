@@ -1,0 +1,9 @@
+ALTER TABLE caja_global ALTER COLUMN total_ingresos DROP DEFAULT;
+ALTER TABLE caja_global ALTER COLUMN total_egresos DROP DEFAULT;
+ALTER TABLE caja_global ALTER COLUMN diferencia DROP DEFAULT;
+ALTER TABLE caja_global ALTER COLUMN diferencia_pos DROP DEFAULT;
+ALTER TABLE caja_global ALTER COLUMN diferencia_efectivo DROP DEFAULT;
+ALTER TABLE caja_global ALTER COLUMN pos_calculado DROP DEFAULT;
+ALTER TABLE caja_global ALTER COLUMN pos_declarado DROP DEFAULT;
+ALTER TABLE caja_global ALTER COLUMN efectivo_calculado DROP DEFAULT;
+ALTER TABLE caja_global ALTER COLUMN efectivo_declarado DROP DEFAULT;

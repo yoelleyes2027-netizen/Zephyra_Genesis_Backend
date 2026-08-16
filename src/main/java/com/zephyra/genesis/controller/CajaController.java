@@ -9,6 +9,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,6 +29,13 @@ public class CajaController {
     public CajaController(CajaService cajaService, AuthService authService) {
         this.cajaService = cajaService;
         this.authService = authService;
+    }
+
+    @GetMapping("/validar-acceso")
+    public ResponseEntity<?> validarAccesoCajas(@CookieValue(value = TOKEN_COOKIE, required = false) String token) {
+        Long usuarioId = authService.validarToken(token).id();
+        cajaService.validarAccesoCajas(usuarioId);
+        return ResponseEntity.ok(Map.of("ok", true));
     }
 
     @PostMapping("/iniciar-dia")

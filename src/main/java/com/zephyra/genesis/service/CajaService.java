@@ -147,6 +147,34 @@ public class CajaService {
         }
     }
 
+    @Transactional(readOnly = true)
+    public void validarAccesoCajas(Long usuarioId) {
+        UsuarioEntity usuario = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado."));
+        if (usuario.getRol() != ROL.ADMIN && usuario.getRol() != ROL.CAJERO) {
+            throw new IllegalArgumentException("Solo admin o cajero pueden acceder al módulo Cajas.");
+        }
+
+        CajaGlobalEntity ultimaCajaGlobal = cajaGlobalRepository.findTopByOrderByIdDesc()
+                .orElseThrow(() -> new IllegalStateException("La caja global no ha sido iniciada"));
+
+        boolean soloInicio = ultimaCajaGlobal.getFechaInicio() != null
+                && ultimaCajaGlobal.getFechaCierre() == null
+                && ultimaCajaGlobal.getTotalIngresos() == null
+                && ultimaCajaGlobal.getTotalEgresos() == null
+                && ultimaCajaGlobal.getDiferencia() == null
+                && ultimaCajaGlobal.getDiferenciaPos() == null
+                && ultimaCajaGlobal.getDiferenciaEfectivo() == null
+                && ultimaCajaGlobal.getPosCalculado() == null
+                && ultimaCajaGlobal.getPosDeclarado() == null
+                && ultimaCajaGlobal.getEfectivoCalculado() == null
+                && ultimaCajaGlobal.getEfectivoDeclarado() == null;
+
+        if (!soloInicio) {
+            throw new IllegalStateException("La caja global no ha sido iniciada");
+        }
+    }
+
     private void validarAutorizacionAdmin(Integer cedulaAdmin, String contrasenaAdmin) {
         if (cedulaAdmin == null || contrasenaAdmin == null || contrasenaAdmin.isBlank()) {
             throw new IllegalArgumentException("Cédula y contraseña de administrador son obligatorias.");
