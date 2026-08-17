@@ -19,8 +19,11 @@ public interface CajaDiariaRepository extends JpaRepository<CajaDiariaEntity, Lo
             "COALESCE(SUM(pos_declarado), 0), " +
             "COALESCE(SUM(diferencia_pos), 0), " +
             "COALESCE(SUM(diferencia_efectivo), 0), " +
+            "COALESCE(SUM(diferencia_dolares), 0), " +
             "COALESCE(SUM(efectivo_calculado), 0), " +
-            "COALESCE(SUM(efectivo_declarado), 0) " +
+            "COALESCE(SUM(efectivo_declarado), 0), " +
+            "COALESCE(SUM(dolares_declarados), 0), " +
+            "COALESCE(SUM(dolares_calculados), 0) " +
             "FROM caja_diaria", nativeQuery = true)
         List<Object[]> obtenerTotalesCierreDia();
 

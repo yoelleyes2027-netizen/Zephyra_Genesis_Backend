@@ -6,6 +6,7 @@ import com.zephyra.genesis.entity.CajaDiariaEntity;
 import com.zephyra.genesis.entity.CajaGlobalEntity;
 import com.zephyra.genesis.entity.FORMA_DE_PAGO;
 import com.zephyra.genesis.entity.ROL;
+import com.zephyra.genesis.entity.TIPO_MONEDA;
 import com.zephyra.genesis.entity.UsuarioEntity;
 import com.zephyra.genesis.repository.CajaDiariaRepository;
 import com.zephyra.genesis.repository.CajaGlobalRepository;
@@ -94,13 +95,20 @@ public class CajaService {
                 usuarioId,
                 fechaInicio,
                 FORMA_DE_PAGO.EFECTIVO));
+        float dolaresCalculados = valor(ticketRepository.sumarMontoPagadoPorUsuarioDesdeYFormaDePagoYMoneda(
+            usuarioId,
+            fechaInicio,
+            FORMA_DE_PAGO.EFECTIVO,
+            TIPO_MONEDA.USD));
         float totalIngresos = valor(ticketRepository.sumarIngresosPorUsuarioDesde(usuarioId, fechaInicio));
         float totalEgresos = valor(ticketRepository.sumarEgresosPorUsuarioDesde(usuarioId, fechaInicio));
 
         float posDeclarado = request.posDeclarado();
         float efectivoDeclarado = request.efectivoDeclarado();
+        float dolaresDeclarados = request.dolaresDeclarados();
         float diferenciaPos = redondear(posDeclarado - posCalculado);
         float diferenciaEfectivo = redondear(efectivoDeclarado - efectivoCalculado);
+        float diferenciaDolares = redondear(dolaresDeclarados - dolaresCalculados);
 
         cajaDiaria.setUsuario(usuario);
         cajaDiaria.setCajaGlobal(cajaGlobalActual);
@@ -111,8 +119,11 @@ public class CajaService {
         cajaDiaria.setPosDeclarado(redondear(posDeclarado));
         cajaDiaria.setEfectivoCalculado(Math.round(efectivoCalculado));
         cajaDiaria.setEfectivoDeclarado(Math.round(efectivoDeclarado));
+        cajaDiaria.setDolaresCalculados(redondear(dolaresCalculados));
+        cajaDiaria.setDolaresDeclarados(redondear(dolaresDeclarados));
         cajaDiaria.setDiferenciaPos(diferenciaPos);
         cajaDiaria.setDiferenciaEfectivo(diferenciaEfectivo);
+        cajaDiaria.setDiferenciaDolares(diferenciaDolares);
         cajaDiaria.setTotalIngresos(redondear(totalIngresos));
         cajaDiaria.setTotalEgresos(redondear(totalEgresos));
 
@@ -145,8 +156,11 @@ public class CajaService {
         cajaGlobalActual.setPosDeclarado(aFloat(totales, 4));
         cajaGlobalActual.setDiferenciaPos(aFloat(totales, 5));
         cajaGlobalActual.setDiferenciaEfectivo(aFloat(totales, 6));
-        cajaGlobalActual.setEfectivoCalculado(aInteger(totales, 7));
-        cajaGlobalActual.setEfectivoDeclarado(aInteger(totales, 8));
+        cajaGlobalActual.setDiferenciaDolares(aFloat(totales, 7));
+        cajaGlobalActual.setEfectivoCalculado(aInteger(totales, 8));
+        cajaGlobalActual.setEfectivoDeclarado(aInteger(totales, 9));
+        cajaGlobalActual.setDolaresDeclarados(aFloat(totales, 10));
+        cajaGlobalActual.setDolaresCalculados(aFloat(totales, 11));
         cajaGlobalActual.setFechaCierre(new Date());
 
         CajaGlobalEntity cajaGlobalCerrada = cajaGlobalRepository.save(cajaGlobalActual);
@@ -203,10 +217,13 @@ public class CajaService {
                 && ultimaCajaGlobal.getTransferenciaCalculada() == null
                 && ultimaCajaGlobal.getDiferenciaPos() == null
                 && ultimaCajaGlobal.getDiferenciaEfectivo() == null
+                && ultimaCajaGlobal.getDiferenciaDolares() == null
                 && ultimaCajaGlobal.getPosCalculado() == null
                 && ultimaCajaGlobal.getPosDeclarado() == null
                 && ultimaCajaGlobal.getEfectivoCalculado() == null
-                && ultimaCajaGlobal.getEfectivoDeclarado() == null;
+                && ultimaCajaGlobal.getEfectivoDeclarado() == null
+                && ultimaCajaGlobal.getDolaresDeclarados() == null
+                && ultimaCajaGlobal.getDolaresCalculados() == null;
 
         if (!soloInicio) {
             throw new IllegalStateException("La caja global no ha sido iniciada");
@@ -229,9 +246,11 @@ public class CajaService {
         if (request == null
                 || request.posDeclarado() == null
                 || request.efectivoDeclarado() == null
+                || request.dolaresDeclarados() == null
                 || request.posDeclarado() < 0
-                || request.efectivoDeclarado() < 0) {
-            throw new IllegalArgumentException("Debes ingresar pos declarado y efectivo declarado válidos.");
+                || request.efectivoDeclarado() < 0
+                || request.dolaresDeclarados() < 0) {
+            throw new IllegalArgumentException("Debes ingresar pos, efectivo y dolares declarados válidos.");
         }
     }
 

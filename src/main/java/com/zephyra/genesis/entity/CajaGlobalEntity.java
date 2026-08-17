@@ -47,6 +47,9 @@ public class CajaGlobalEntity {
     private Float diferenciaEfectivo;
 
     @Column
+    private Float diferenciaDolares;
+
+    @Column
     private Float posCalculado;
 
     @Column
@@ -57,6 +60,12 @@ public class CajaGlobalEntity {
 
     @Column
     private Integer efectivoDeclarado;
+
+    @Column
+    private Float dolaresCalculados;
+
+    @Column
+    private Float dolaresDeclarados;
 
     @OneToMany(mappedBy = "cajaGlobal", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<CajaDiariaEntity> cajasDiarias = new ArrayList<>();
@@ -100,6 +109,10 @@ public class CajaGlobalEntity {
         return diferenciaEfectivo;
     }
 
+    public Float getDiferenciaDolares() {
+        return diferenciaDolares;
+    }
+
     public Float getPosCalculado() {
         return posCalculado;
     }
@@ -114,6 +127,14 @@ public class CajaGlobalEntity {
 
     public Integer getEfectivoDeclarado() {
         return efectivoDeclarado;
+    }
+
+    public Float getDolaresCalculados() {
+        return dolaresCalculados;
+    }
+
+    public Float getDolaresDeclarados() {
+        return dolaresDeclarados;
     }
 
     public List<CajaDiariaEntity> getCajasDiarias() {
@@ -152,6 +173,10 @@ public class CajaGlobalEntity {
         this.diferenciaEfectivo = diferenciaEfectivo;
     }
 
+    public void setDiferenciaDolares(Float diferenciaDolares) {
+        this.diferenciaDolares = diferenciaDolares;
+    }
+
     public void setPosCalculado(Float posCalculado) {
         this.posCalculado = posCalculado;
     }
@@ -166,6 +191,14 @@ public class CajaGlobalEntity {
 
     public void setEfectivoDeclarado(Integer efectivoDeclarado) {
         this.efectivoDeclarado = efectivoDeclarado;
+    }
+
+    public void setDolaresCalculados(Float dolaresCalculados) {
+        this.dolaresCalculados = dolaresCalculados;
+    }
+
+    public void setDolaresDeclarados(Float dolaresDeclarados) {
+        this.dolaresDeclarados = dolaresDeclarados;
     }
 
     public void setCajasDiarias(List<CajaDiariaEntity> cajasDiarias) {

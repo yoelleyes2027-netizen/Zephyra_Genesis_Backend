@@ -606,10 +606,13 @@ public class AdminSistemaService {
                     c.fecha_cierre AS "fechaCierre",
                     c.diferencia_pos AS "diferenciaPos",
                     c.diferencia_efectivo AS "diferenciaEfectivo",
+                    c.diferencia_dolares AS "diferenciaDolares",
                     c.pos_calculado AS "posCalculado",
                     c.pos_declarado AS "posDeclarado",
                     c.efectivo_calculado AS "efectivoCalculado",
                     c.efectivo_declarado AS "efectivoDeclarado",
+                    c.dolares_calculados AS "dolaresCalculados",
+                    c.dolares_declarados AS "dolaresDeclarados",
                     p.name AS "usuarioNombre",
                     c.usuario_id AS "usuarioId"
                 FROM caja_diaria c
@@ -742,10 +745,13 @@ public class AdminSistemaService {
         row.put("fechaCierre", caja.getFechaCierre());
         row.put("diferenciaPos", caja.getDiferenciaPos());
         row.put("diferenciaEfectivo", caja.getDiferenciaEfectivo());
+        row.put("diferenciaDolares", caja.getDiferenciaDolares());
         row.put("posCalculado", caja.getPosCalculado());
         row.put("posDeclarado", caja.getPosDeclarado());
         row.put("efectivoCalculado", caja.getEfectivoCalculado());
         row.put("efectivoDeclarado", caja.getEfectivoDeclarado());
+        row.put("dolaresCalculados", caja.getDolaresCalculados());
+        row.put("dolaresDeclarados", caja.getDolaresDeclarados());
         row.put("cajaGlobalId", caja.getCajaGlobal() != null ? caja.getCajaGlobal().getId() : null);
         row.put("usuarioId", caja.getUsuario() != null ? caja.getUsuario().getId() : null);
         row.put("usuarioNombre", caja.getUsuario() != null ? caja.getUsuario().getName() : null);

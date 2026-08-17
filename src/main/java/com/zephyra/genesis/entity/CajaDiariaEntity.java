@@ -33,6 +33,9 @@ public class CajaDiariaEntity {
     private float diferenciaEfectivo;
 
     @Column
+    private float diferenciaDolares;
+
+    @Column
     private float posCalculado;
     @Column
     private float posDeclarado;
@@ -42,6 +45,12 @@ public class CajaDiariaEntity {
 
     @Column
     private int efectivoDeclarado;
+
+    @Column
+    private float dolaresCalculados;
+
+    @Column
+    private float dolaresDeclarados;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "caja_global_id")
@@ -86,6 +95,10 @@ public class CajaDiariaEntity {
         return diferenciaEfectivo;
     }
 
+    public float getDiferenciaDolares() {
+        return diferenciaDolares;
+    }
+
     public float getPosCalculado() {
         return posCalculado;
     }
@@ -100,6 +113,14 @@ public class CajaDiariaEntity {
 
     public int getEfectivoDeclarado() {
         return efectivoDeclarado;
+    }
+
+    public float getDolaresCalculados() {
+        return dolaresCalculados;
+    }
+
+    public float getDolaresDeclarados() {
+        return dolaresDeclarados;
     }
 
     public CajaGlobalEntity getCajaGlobal() {
@@ -142,6 +163,10 @@ public class CajaDiariaEntity {
         this.diferenciaEfectivo = diferenciaEfectivo;
     }
 
+    public void setDiferenciaDolares(float diferenciaDolares) {
+        this.diferenciaDolares = diferenciaDolares;
+    }
+
     public void setPosCalculado(float posCalculado) {
         this.posCalculado = posCalculado;
     }
@@ -156,6 +181,14 @@ public class CajaDiariaEntity {
 
     public void setEfectivoDeclarado(int efectivoDeclarado) {
         this.efectivoDeclarado = efectivoDeclarado;
+    }
+
+    public void setDolaresCalculados(float dolaresCalculados) {
+        this.dolaresCalculados = dolaresCalculados;
+    }
+
+    public void setDolaresDeclarados(float dolaresDeclarados) {
+        this.dolaresDeclarados = dolaresDeclarados;
     }
 
     public void setCajaGlobal(CajaGlobalEntity cajaGlobal) {
