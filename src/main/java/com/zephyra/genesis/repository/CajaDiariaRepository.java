@@ -26,6 +26,6 @@ public interface CajaDiariaRepository extends JpaRepository<CajaDiariaEntity, Lo
         List<Object[]> obtenerTotalesCierreDia();
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query(value = "TRUNCATE TABLE caja_diaria", nativeQuery = true)
+    @Query(value = "TRUNCATE TABLE caja_diaria RESTRICT", nativeQuery = true)
     void truncateCajaDiaria();
 }
