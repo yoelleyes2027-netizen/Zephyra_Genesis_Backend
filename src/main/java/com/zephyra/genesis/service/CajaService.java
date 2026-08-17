@@ -113,7 +113,6 @@ public class CajaService {
         cajaDiaria.setEfectivoDeclarado(Math.round(efectivoDeclarado));
         cajaDiaria.setDiferenciaPos(diferenciaPos);
         cajaDiaria.setDiferenciaEfectivo(diferenciaEfectivo);
-        cajaDiaria.setDiferencia(redondear(diferenciaPos + diferenciaEfectivo));
         cajaDiaria.setTotalIngresos(redondear(totalIngresos));
         cajaDiaria.setTotalEgresos(redondear(totalEgresos));
 
@@ -144,11 +143,10 @@ public class CajaService {
         cajaGlobalActual.setTransferenciaCalculada(aFloat(totales, 2));
         cajaGlobalActual.setPosCalculado(aFloat(totales, 3));
         cajaGlobalActual.setPosDeclarado(aFloat(totales, 4));
-        cajaGlobalActual.setDiferencia(aFloat(totales, 5));
-        cajaGlobalActual.setDiferenciaPos(aFloat(totales, 6));
-        cajaGlobalActual.setDiferenciaEfectivo(aFloat(totales, 7));
-        cajaGlobalActual.setEfectivoCalculado(aInteger(totales, 8));
-        cajaGlobalActual.setEfectivoDeclarado(aInteger(totales, 9));
+        cajaGlobalActual.setDiferenciaPos(aFloat(totales, 5));
+        cajaGlobalActual.setDiferenciaEfectivo(aFloat(totales, 6));
+        cajaGlobalActual.setEfectivoCalculado(aInteger(totales, 7));
+        cajaGlobalActual.setEfectivoDeclarado(aInteger(totales, 8));
         cajaGlobalActual.setFechaCierre(new Date());
 
         CajaGlobalEntity cajaGlobalCerrada = cajaGlobalRepository.save(cajaGlobalActual);
@@ -202,8 +200,7 @@ public class CajaService {
                 && ultimaCajaGlobal.getFechaCierre() == null
                 && ultimaCajaGlobal.getTotalIngresos() == null
                 && ultimaCajaGlobal.getTotalEgresos() == null
-            && ultimaCajaGlobal.getTransferenciaCalculada() == null
-                && ultimaCajaGlobal.getDiferencia() == null
+                && ultimaCajaGlobal.getTransferenciaCalculada() == null
                 && ultimaCajaGlobal.getDiferenciaPos() == null
                 && ultimaCajaGlobal.getDiferenciaEfectivo() == null
                 && ultimaCajaGlobal.getPosCalculado() == null

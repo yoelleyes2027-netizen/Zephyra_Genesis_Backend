@@ -283,7 +283,6 @@ public class TenantDatabaseProvisioningService {
                         transferencia_calculada REAL,
                         fecha_inicio DATE NOT NULL,
                         fecha_cierre DATE,
-                        diferencia REAL,
                         diferencia_pos REAL,
                         diferencia_efectivo REAL,
                         pos_calculado REAL,
@@ -298,7 +297,6 @@ public class TenantDatabaseProvisioningService {
             statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN total_egresos DROP NOT NULL");
             statement.executeUpdate("ALTER TABLE caja_global ADD COLUMN IF NOT EXISTS transferencia_calculada REAL");
             statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN transferencia_calculada DROP NOT NULL");
-            statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN diferencia DROP NOT NULL");
             statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN diferencia_pos DROP NOT NULL");
             statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN diferencia_efectivo DROP NOT NULL");
             statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN pos_calculado DROP NOT NULL");
@@ -308,13 +306,14 @@ public class TenantDatabaseProvisioningService {
             statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN total_ingresos DROP DEFAULT");
             statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN total_egresos DROP DEFAULT");
             statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN transferencia_calculada DROP DEFAULT");
-            statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN diferencia DROP DEFAULT");
             statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN diferencia_pos DROP DEFAULT");
             statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN diferencia_efectivo DROP DEFAULT");
             statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN pos_calculado DROP DEFAULT");
             statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN pos_declarado DROP DEFAULT");
             statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN efectivo_calculado DROP DEFAULT");
             statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN efectivo_declarado DROP DEFAULT");
+            statement.executeUpdate("ALTER TABLE caja_diaria DROP COLUMN IF EXISTS diferencia");
+            statement.executeUpdate("ALTER TABLE caja_global DROP COLUMN IF EXISTS diferencia");
 
             statement.executeUpdate("ALTER TABLE caja_diaria ADD COLUMN IF NOT EXISTS caja_global_id BIGINT");
             statement.executeUpdate("ALTER TABLE caja_diaria DROP CONSTRAINT IF EXISTS fk_caja_diaria_caja_global");

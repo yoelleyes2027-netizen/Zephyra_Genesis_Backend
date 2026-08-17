@@ -27,9 +27,6 @@ public class CajaDiariaEntity {
     private Date fechaInicio;
 
     @Column
-    private float diferencia;
-
-    @Column
     private float diferenciaPos;
 
     @Column
@@ -79,10 +76,6 @@ public class CajaDiariaEntity {
 
     public Date getFechaInicio() {
         return fechaInicio;
-    }
-
-    public float getDiferencia() {
-        return diferencia;
     }
 
     public float getDiferenciaPos() {
@@ -139,10 +132,6 @@ public class CajaDiariaEntity {
 
     public void setFechaInicio(Date fechaInicio) {
         this.fechaInicio = fechaInicio;
-    }
-
-    public void setDiferencia(float diferencia) {
-        this.diferencia = diferencia;
     }
 
     public void setDiferenciaPos(float diferenciaPos) {

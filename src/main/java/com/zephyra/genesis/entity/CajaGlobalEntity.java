@@ -41,9 +41,6 @@ public class CajaGlobalEntity {
     private Date fechaCierre;
 
     @Column
-    private Float diferencia;
-
-    @Column
     private Float diferenciaPos;
 
     @Column
@@ -93,10 +90,6 @@ public class CajaGlobalEntity {
 
     public Date getFechaCierre() {
         return fechaCierre;
-    }
-
-    public Float getDiferencia() {
-        return diferencia;
     }
 
     public Float getDiferenciaPos() {
@@ -149,10 +142,6 @@ public class CajaGlobalEntity {
 
     public void setFechaCierre(Date fechaCierre) {
         this.fechaCierre = fechaCierre;
-    }
-
-    public void setDiferencia(Float diferencia) {
-        this.diferencia = diferencia;
     }
 
     public void setDiferenciaPos(Float diferenciaPos) {

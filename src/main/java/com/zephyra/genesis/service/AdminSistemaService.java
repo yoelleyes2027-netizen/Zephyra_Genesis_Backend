@@ -604,7 +604,6 @@ public class AdminSistemaService {
                     c.transferencia_calculada AS "transferenciaCalculada",
                     c.fecha_inicio AS "fechaInicio",
                     c.fecha_cierre AS "fechaCierre",
-                    c.diferencia,
                     c.diferencia_pos AS "diferenciaPos",
                     c.diferencia_efectivo AS "diferenciaEfectivo",
                     c.pos_calculado AS "posCalculado",
@@ -741,7 +740,6 @@ public class AdminSistemaService {
         row.put("transferenciaCalculada", caja.getTransferenciaCalculada());
         row.put("fechaInicio", caja.getFechaInicio());
         row.put("fechaCierre", caja.getFechaCierre());
-        row.put("diferencia", caja.getDiferencia());
         row.put("diferenciaPos", caja.getDiferenciaPos());
         row.put("diferenciaEfectivo", caja.getDiferenciaEfectivo());
         row.put("posCalculado", caja.getPosCalculado());

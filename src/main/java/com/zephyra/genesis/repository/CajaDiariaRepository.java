@@ -17,7 +17,6 @@ public interface CajaDiariaRepository extends JpaRepository<CajaDiariaEntity, Lo
             "COALESCE(SUM(transferencia_calculada), 0), " +
             "COALESCE(SUM(pos_calculado), 0), " +
             "COALESCE(SUM(pos_declarado), 0), " +
-            "COALESCE(SUM(diferencia), 0), " +
             "COALESCE(SUM(diferencia_pos), 0), " +
             "COALESCE(SUM(diferencia_efectivo), 0), " +
             "COALESCE(SUM(efectivo_calculado), 0), " +
