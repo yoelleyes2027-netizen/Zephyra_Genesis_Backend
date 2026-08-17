@@ -59,6 +59,17 @@ public class CajaController {
                 "fecha_cierre", caja.getFechaCierre()));
     }
 
+    @PostMapping("/cerrar-dia")
+    public ResponseEntity<?> cerrarDia(@CookieValue(value = TOKEN_COOKIE, required = false) String token) {
+        Long usuarioId = authService.validarToken(token).id();
+        CajaGlobalEntity cajaGlobal = cajaService.cerrarDia(usuarioId);
+        return ResponseEntity.ok(Map.of(
+                "ok", true,
+                "mensaje", "Dia cerrado correctamente",
+                "caja_global_id", cajaGlobal.getId(),
+                "fecha_cierre", cajaGlobal.getFechaCierre()));
+    }
+
     private Long obtenerUsuarioIdDesdeCookie(HttpServletRequest request) {
         if (request.getCookies() == null) {
             throw new IllegalArgumentException("Usuario no autenticado");

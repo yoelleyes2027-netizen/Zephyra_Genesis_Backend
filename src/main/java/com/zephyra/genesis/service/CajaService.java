@@ -119,6 +119,38 @@ public class CajaService {
         return cajaDiariaRepository.save(cajaDiaria);
     }
 
+    @Transactional
+    public CajaGlobalEntity cerrarDia(Long usuarioId) {
+        UsuarioEntity usuario = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado."));
+        if (usuario.getRol() != ROL.ADMIN) {
+            throw new IllegalArgumentException("Solo un admin de la BDD puede cerrar el día.");
+        }
+
+        CajaGlobalEntity cajaGlobalActual = cajaGlobalRepository.findTopByOrderByIdDesc()
+                .orElseThrow(() -> new IllegalArgumentException("Primero debes iniciar el día."));
+
+        if (cajaGlobalActual.getFechaCierre() != null) {
+            throw new IllegalArgumentException("El día actual ya está cerrado.");
+        }
+
+        Object[] totales = cajaDiariaRepository.obtenerTotalesCierreDia();
+        cajaGlobalActual.setTotalIngresos(aFloat(totales, 0));
+        cajaGlobalActual.setTotalEgresos(aFloat(totales, 1));
+        cajaGlobalActual.setPosCalculado(aFloat(totales, 2));
+        cajaGlobalActual.setPosDeclarado(aFloat(totales, 3));
+        cajaGlobalActual.setDiferencia(aFloat(totales, 4));
+        cajaGlobalActual.setDiferenciaPos(aFloat(totales, 5));
+        cajaGlobalActual.setDiferenciaEfectivo(aFloat(totales, 6));
+        cajaGlobalActual.setEfectivoCalculado(aInteger(totales, 7));
+        cajaGlobalActual.setEfectivoDeclarado(aInteger(totales, 8));
+        cajaGlobalActual.setFechaCierre(new Date());
+
+        CajaGlobalEntity cajaGlobalCerrada = cajaGlobalRepository.save(cajaGlobalActual);
+        cajaDiariaRepository.truncateCajaDiaria();
+        return cajaGlobalCerrada;
+    }
+
     @Transactional(readOnly = true)
     public void validarCierreParaLogout(AuthUserResponse usuarioToken) {
         if (usuarioToken == null) {
@@ -132,6 +164,9 @@ public class CajaService {
 
         CajaGlobalEntity cajaGlobalActual = cajaGlobalRepository.findTopByOrderByIdDesc().orElse(null);
         if (cajaGlobalActual == null) {
+            return;
+        }
+        if (cajaGlobalActual.getFechaCierre() != null) {
             return;
         }
 
@@ -203,5 +238,19 @@ public class CajaService {
 
     private float redondear(float monto) {
         return Math.round(monto * 100f) / 100f;
+    }
+
+    private float aFloat(Object[] values, int index) {
+        if (values == null || values.length <= index || values[index] == null) {
+            return 0f;
+        }
+        return ((Number) values[index]).floatValue();
+    }
+
+    private int aInteger(Object[] values, int index) {
+        if (values == null || values.length <= index || values[index] == null) {
+            return 0;
+        }
+        return ((Number) values[index]).intValue();
     }
 }
