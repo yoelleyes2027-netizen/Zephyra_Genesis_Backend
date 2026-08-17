@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface CajaDiariaRepository extends JpaRepository<CajaDiariaEntity, Long> {
@@ -13,6 +14,7 @@ public interface CajaDiariaRepository extends JpaRepository<CajaDiariaEntity, Lo
     @Query(value = "SELECT " +
             "COALESCE(SUM(total_ingresos), 0), " +
             "COALESCE(SUM(total_egresos), 0), " +
+            "COALESCE(SUM(transferencia_calculada), 0), " +
             "COALESCE(SUM(pos_calculado), 0), " +
             "COALESCE(SUM(pos_declarado), 0), " +
             "COALESCE(SUM(diferencia), 0), " +
@@ -21,7 +23,7 @@ public interface CajaDiariaRepository extends JpaRepository<CajaDiariaEntity, Lo
             "COALESCE(SUM(efectivo_calculado), 0), " +
             "COALESCE(SUM(efectivo_declarado), 0) " +
             "FROM caja_diaria", nativeQuery = true)
-    Object[] obtenerTotalesCierreDia();
+        List<Object[]> obtenerTotalesCierreDia();
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query(value = "TRUNCATE TABLE caja_diaria", nativeQuery = true)

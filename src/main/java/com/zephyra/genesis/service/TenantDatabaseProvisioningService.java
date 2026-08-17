@@ -280,6 +280,7 @@ public class TenantDatabaseProvisioningService {
                         id BIGSERIAL PRIMARY KEY,
                         total_ingresos REAL,
                         total_egresos REAL,
+                        transferencia_calculada REAL,
                         fecha_inicio DATE NOT NULL,
                         fecha_cierre DATE,
                         diferencia REAL,
@@ -295,6 +296,8 @@ public class TenantDatabaseProvisioningService {
             statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN fecha_inicio SET NOT NULL");
             statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN total_ingresos DROP NOT NULL");
             statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN total_egresos DROP NOT NULL");
+            statement.executeUpdate("ALTER TABLE caja_global ADD COLUMN IF NOT EXISTS transferencia_calculada REAL");
+            statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN transferencia_calculada DROP NOT NULL");
             statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN diferencia DROP NOT NULL");
             statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN diferencia_pos DROP NOT NULL");
             statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN diferencia_efectivo DROP NOT NULL");
@@ -304,6 +307,7 @@ public class TenantDatabaseProvisioningService {
             statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN efectivo_declarado DROP NOT NULL");
             statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN total_ingresos DROP DEFAULT");
             statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN total_egresos DROP DEFAULT");
+            statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN transferencia_calculada DROP DEFAULT");
             statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN diferencia DROP DEFAULT");
             statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN diferencia_pos DROP DEFAULT");
             statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN diferencia_efectivo DROP DEFAULT");

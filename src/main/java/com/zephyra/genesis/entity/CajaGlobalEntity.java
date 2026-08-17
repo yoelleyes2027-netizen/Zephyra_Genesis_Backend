@@ -29,6 +29,9 @@ public class CajaGlobalEntity {
     @Column
     private Float totalEgresos;
 
+    @Column
+    private Float transferenciaCalculada;
+
     @Column(nullable = false)
     @Temporal(TemporalType.DATE)
     private Date fechaInicio;
@@ -78,6 +81,10 @@ public class CajaGlobalEntity {
 
     public Float getTotalEgresos() {
         return totalEgresos;
+    }
+
+    public Float getTransferenciaCalculada() {
+        return transferenciaCalculada;
     }
 
     public Date getFechaInicio() {
@@ -130,6 +137,10 @@ public class CajaGlobalEntity {
 
     public void setTotalEgresos(Float totalEgresos) {
         this.totalEgresos = totalEgresos;
+    }
+
+    public void setTransferenciaCalculada(Float transferenciaCalculada) {
+        this.transferenciaCalculada = transferenciaCalculada;
     }
 
     public void setFechaInicio(Date fechaInicio) {

@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
+import java.util.List;
 
 @Service
 public class CajaService {
@@ -134,16 +135,20 @@ public class CajaService {
             throw new IllegalArgumentException("El día actual ya está cerrado.");
         }
 
-        Object[] totales = cajaDiariaRepository.obtenerTotalesCierreDia();
+        List<Object[]> filasTotales = cajaDiariaRepository.obtenerTotalesCierreDia();
+        Object[] totales = (filasTotales == null || filasTotales.isEmpty() || filasTotales.get(0) == null)
+            ? new Object[0]
+            : filasTotales.get(0);
         cajaGlobalActual.setTotalIngresos(aFloat(totales, 0));
         cajaGlobalActual.setTotalEgresos(aFloat(totales, 1));
-        cajaGlobalActual.setPosCalculado(aFloat(totales, 2));
-        cajaGlobalActual.setPosDeclarado(aFloat(totales, 3));
-        cajaGlobalActual.setDiferencia(aFloat(totales, 4));
-        cajaGlobalActual.setDiferenciaPos(aFloat(totales, 5));
-        cajaGlobalActual.setDiferenciaEfectivo(aFloat(totales, 6));
-        cajaGlobalActual.setEfectivoCalculado(aInteger(totales, 7));
-        cajaGlobalActual.setEfectivoDeclarado(aInteger(totales, 8));
+        cajaGlobalActual.setTransferenciaCalculada(aFloat(totales, 2));
+        cajaGlobalActual.setPosCalculado(aFloat(totales, 3));
+        cajaGlobalActual.setPosDeclarado(aFloat(totales, 4));
+        cajaGlobalActual.setDiferencia(aFloat(totales, 5));
+        cajaGlobalActual.setDiferenciaPos(aFloat(totales, 6));
+        cajaGlobalActual.setDiferenciaEfectivo(aFloat(totales, 7));
+        cajaGlobalActual.setEfectivoCalculado(aInteger(totales, 8));
+        cajaGlobalActual.setEfectivoDeclarado(aInteger(totales, 9));
         cajaGlobalActual.setFechaCierre(new Date());
 
         CajaGlobalEntity cajaGlobalCerrada = cajaGlobalRepository.save(cajaGlobalActual);
@@ -197,6 +202,7 @@ public class CajaService {
                 && ultimaCajaGlobal.getFechaCierre() == null
                 && ultimaCajaGlobal.getTotalIngresos() == null
                 && ultimaCajaGlobal.getTotalEgresos() == null
+            && ultimaCajaGlobal.getTransferenciaCalculada() == null
                 && ultimaCajaGlobal.getDiferencia() == null
                 && ultimaCajaGlobal.getDiferenciaPos() == null
                 && ultimaCajaGlobal.getDiferenciaEfectivo() == null
@@ -244,13 +250,21 @@ public class CajaService {
         if (values == null || values.length <= index || values[index] == null) {
             return 0f;
         }
-        return ((Number) values[index]).floatValue();
+        Object value = values[index];
+        if (value instanceof Number number) {
+            return number.floatValue();
+        }
+        return Float.parseFloat(value.toString());
     }
 
     private int aInteger(Object[] values, int index) {
         if (values == null || values.length <= index || values[index] == null) {
             return 0;
         }
-        return ((Number) values[index]).intValue();
+        Object value = values[index];
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        return Math.round(Float.parseFloat(value.toString()));
     }
 }
