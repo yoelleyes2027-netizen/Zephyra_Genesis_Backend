@@ -38,6 +38,24 @@ public class CajaController {
         return ResponseEntity.ok(Map.of("ok", true));
     }
 
+    @GetMapping("/estado-apertura")
+    public ResponseEntity<?> estadoApertura(@CookieValue(value = TOKEN_COOKIE, required = false) String token) {
+        Long usuarioId = authService.validarToken(token).id();
+        boolean abierta = cajaService.cajaAbiertaParaUsuario(usuarioId);
+        return ResponseEntity.ok(Map.of("ok", true, "abierta", abierta));
+    }
+
+    @PostMapping("/abrir")
+    public ResponseEntity<?> abrirCaja(@CookieValue(value = TOKEN_COOKIE, required = false) String token) {
+        Long usuarioId = authService.validarToken(token).id();
+        CajaDiariaEntity cajaDiaria = cajaService.abrirCaja(usuarioId);
+        return ResponseEntity.ok(Map.of(
+                "ok", true,
+                "mensaje", "Caja abierta correctamente",
+                "caja_diaria_id", cajaDiaria.getId(),
+                "fecha_inicio", cajaDiaria.getFechaInicio()));
+    }
+
     @PostMapping("/iniciar-dia")
     public ResponseEntity<?> iniciarDia(@CookieValue(value = TOKEN_COOKIE, required = false) String token) {
         Long usuarioId = authService.validarToken(token).id();

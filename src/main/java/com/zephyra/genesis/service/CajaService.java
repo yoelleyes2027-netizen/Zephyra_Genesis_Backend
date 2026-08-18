@@ -54,6 +54,47 @@ public class CajaService {
     }
 
     @Transactional
+    public CajaDiariaEntity abrirCaja(Long usuarioId) {
+        UsuarioEntity usuario = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado."));
+        if (usuario.getRol() != ROL.ADMIN && usuario.getRol() != ROL.CAJERO) {
+            throw new IllegalArgumentException("Solo usuarios admin o cajero pueden abrir caja.");
+        }
+
+        CajaGlobalEntity cajaGlobalActual = cajaGlobalRepository.findTopByOrderByIdDesc()
+                .orElseThrow(() -> new IllegalArgumentException("La caja global no ha sido iniciada."));
+
+        CajaDiariaEntity cajaDiaria = cajaDiariaRepository.findByUsuario_Id(usuarioId)
+                .orElseGet(CajaDiariaEntity::new);
+
+        if (cajaDiaria.getFechaInicio() != null
+                && cajaDiaria.getFechaCierre() == null
+                && cajaDiaria.getCajaGlobal() != null
+                && cajaDiaria.getCajaGlobal().getId() != null
+                && cajaDiaria.getCajaGlobal().getId().equals(cajaGlobalActual.getId())) {
+            throw new IllegalArgumentException("La caja ya está abierta para este usuario.");
+        }
+
+        cajaDiaria.setUsuario(usuario);
+        cajaDiaria.setCajaGlobal(cajaGlobalActual);
+        cajaDiaria.setFechaInicio(new Date());
+        cajaDiaria.setFechaCierre(null);
+        cajaDiaria.setTransferenciaCalculada(0f);
+        cajaDiaria.setPosCalculado(0f);
+        cajaDiaria.setPosDeclarado(0f);
+        cajaDiaria.setEfectivoCalculado(0);
+        cajaDiaria.setEfectivoDeclarado(0);
+        cajaDiaria.setDolaresCalculados(0f);
+        cajaDiaria.setDolaresDeclarados(0f);
+        cajaDiaria.setDiferenciaPos(0f);
+        cajaDiaria.setDiferenciaEfectivo(0f);
+        cajaDiaria.setDiferenciaDolares(0f);
+        cajaDiaria.setTotalIngresos(0f);
+        cajaDiaria.setTotalEgresos(0f);
+        return cajaDiariaRepository.save(cajaDiaria);
+    }
+
+    @Transactional
     public CajaDiariaEntity cerrarCaja(Long usuarioId, CerrarCajaRequest request) {
         validarRequestCierre(request);
 
@@ -68,13 +109,19 @@ public class CajaService {
         CajaGlobalEntity cajaGlobalActual = cajaGlobalRepository.findTopByOrderByIdDesc()
                 .orElseThrow(() -> new IllegalArgumentException("Primero debes iniciar el día."));
 
-        Date fechaInicio = cajaGlobalActual.getFechaInicio();
-        if (fechaInicio == null) {
-            throw new IllegalArgumentException("La caja global actual no tiene fecha de inicio.");
+        CajaDiariaEntity cajaDiaria = cajaDiariaRepository.findByUsuario_Id(usuarioId)
+                .orElseThrow(() -> new IllegalArgumentException("Primero debes abrir caja."));
+
+        if (cajaDiaria.getCajaGlobal() == null
+                || cajaDiaria.getCajaGlobal().getId() == null
+                || !cajaDiaria.getCajaGlobal().getId().equals(cajaGlobalActual.getId())) {
+            throw new IllegalArgumentException("Debes abrir caja para el día actual.");
         }
 
-        CajaDiariaEntity cajaDiaria = cajaDiariaRepository.findByUsuario_Id(usuarioId)
-                .orElseGet(CajaDiariaEntity::new);
+        Date fechaInicio = cajaDiaria.getFechaInicio();
+        if (fechaInicio == null) {
+            throw new IllegalArgumentException("Primero debes abrir caja.");
+        }
 
         if (cajaDiaria.getCajaGlobal() != null
                 && cajaDiaria.getCajaGlobal().getId() != null
@@ -113,7 +160,6 @@ public class CajaService {
 
         cajaDiaria.setUsuario(usuario);
         cajaDiaria.setCajaGlobal(cajaGlobalActual);
-        cajaDiaria.setFechaInicio(fechaInicio);
         cajaDiaria.setFechaCierre(new Date());
         cajaDiaria.setTransferenciaCalculada(redondear(transferenciaCalculada));
         cajaDiaria.setPosCalculado(redondear(posCalculado));
@@ -189,11 +235,15 @@ public class CajaService {
         }
 
         CajaDiariaEntity cajaDiaria = cajaDiariaRepository.findByUsuario_Id(usuarioToken.id()).orElse(null);
-        boolean cajaCerrada = cajaDiaria != null
-                && cajaDiaria.getCajaGlobal() != null
-                && cajaDiaria.getCajaGlobal().getId() != null
-                && cajaDiaria.getCajaGlobal().getId().equals(cajaGlobalActual.getId())
-                && cajaDiaria.getFechaCierre() != null;
+        if (cajaDiaria == null
+            || cajaDiaria.getCajaGlobal() == null
+            || cajaDiaria.getCajaGlobal().getId() == null
+            || !cajaDiaria.getCajaGlobal().getId().equals(cajaGlobalActual.getId())
+            || cajaDiaria.getFechaInicio() == null) {
+            return;
+        }
+
+        boolean cajaCerrada = cajaDiaria.getFechaCierre() != null;
 
         if (!cajaCerrada) {
             throw new IllegalStateException("Debes cerrar caja antes de cerrar sesión.");
@@ -229,6 +279,28 @@ public class CajaService {
         if (!soloInicio) {
             throw new IllegalStateException("La caja global no ha sido iniciada");
         }
+    }
+
+    @Transactional(readOnly = true)
+    public boolean cajaAbiertaParaUsuario(Long usuarioId) {
+        UsuarioEntity usuario = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado."));
+        if (usuario.getRol() != ROL.ADMIN && usuario.getRol() != ROL.CAJERO) {
+            throw new IllegalArgumentException("Solo admin o cajero pueden acceder al módulo Cajas.");
+        }
+
+        CajaGlobalEntity cajaGlobalActual = cajaGlobalRepository.findTopByOrderByIdDesc().orElse(null);
+        if (cajaGlobalActual == null) {
+            return false;
+        }
+
+        CajaDiariaEntity cajaDiaria = cajaDiariaRepository.findByUsuario_Id(usuarioId).orElse(null);
+        return cajaDiaria != null
+                && cajaDiaria.getCajaGlobal() != null
+                && cajaDiaria.getCajaGlobal().getId() != null
+                && cajaDiaria.getCajaGlobal().getId().equals(cajaGlobalActual.getId())
+                && cajaDiaria.getFechaInicio() != null
+                && cajaDiaria.getFechaCierre() == null;
     }
 
     private void validarAutorizacionAdmin(Integer cedulaAdmin, String contrasenaAdmin) {
