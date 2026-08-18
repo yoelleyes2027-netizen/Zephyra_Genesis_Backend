@@ -118,9 +118,13 @@ public class CajaService {
             throw new IllegalArgumentException("Debes abrir caja para el día actual.");
         }
 
-        Date fechaInicio = cajaDiaria.getFechaInicio();
-        if (fechaInicio == null) {
+        if (cajaDiaria.getFechaInicio() == null) {
             throw new IllegalArgumentException("Primero debes abrir caja.");
+        }
+
+        Date fechaInicio = cajaGlobalActual.getFechaInicio();
+        if (fechaInicio == null) {
+            throw new IllegalArgumentException("Primero debes iniciar el día.");
         }
 
         if (cajaDiaria.getCajaGlobal() != null
