@@ -10,7 +10,6 @@ import com.zephyra.genesis.service.TicketService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -40,6 +39,16 @@ public class TicketController {
         Long usuarioId = obtenerUsuarioIdDesdeCookie(httpServletRequest);
         TicketResponse ticket = ticketService.crear(request, usuarioId);
         return ResponseEntity.status(201).body(Map.of("ok", true, "mensaje", "Ticket creado con éxito", "ticket_id", ticket.id()));
+    }
+
+    @PostMapping("/devolucion-por-caja")
+    public ResponseEntity<?> crearDevolucionPorCaja(@RequestBody TicketRequest request, HttpServletRequest httpServletRequest) {
+        Long usuarioId = obtenerUsuarioIdDesdeCookie(httpServletRequest);
+        TicketResponse ticket = ticketService.crearDevolucionPorCaja(request, usuarioId);
+        return ResponseEntity.status(201).body(Map.of(
+                "ok", true,
+                "mensaje", "Devolución por caja registrada con éxito",
+                "ticket_id", ticket.id()));
     }
 
     @PostMapping("/devoluciones/autorizacion")

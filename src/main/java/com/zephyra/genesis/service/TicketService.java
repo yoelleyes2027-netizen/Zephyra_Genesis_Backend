@@ -76,9 +76,40 @@ public class TicketService {
                 request.formaDePago(),
                 request.tipoMoneda(),
                 request.montoPagado(),
-            request.egreso(),
-            request.egresosDescripcion(),
+                request.egreso(),
+                request.egresosDescripcion(),
                 request.detalleTickets(),
+                false,
+                true,
+                false);
+        return toResponse(ticket);
+    }
+
+    @Transactional
+    public TicketResponse crearDevolucionPorCaja(TicketRequest request, Long usuarioId) {
+        validarDetalle(request.detalleTickets());
+        ClienteEntity cliente = clienteRepository.findById(request.clienteId())
+                .orElseThrow(() -> new IllegalArgumentException("Cliente no encontrado"));
+        if (Long.valueOf(1L).equals(request.clienteId()) && !(cliente instanceof ClienteComunEntity)) {
+            throw new IllegalArgumentException("El id 1 debe corresponder a un ClienteComun para usar consumidor final.");
+        }
+
+        UsuarioEntity usuario = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
+        if (usuario.getRol() != ROL.ADMIN && usuario.getRol() != ROL.CAJERO) {
+            throw new IllegalArgumentException("Solo admin o cajero pueden registrar una devolución por caja.");
+        }
+
+        TicketEntity ticket = crearTicket(
+                cliente,
+                usuario,
+                request.formaDePago(),
+                TIPO_MONEDA.UYU,
+                0f,
+                false,
+                null,
+                request.detalleTickets(),
+                true,
                 false,
                 true);
         return toResponse(ticket);
@@ -116,10 +147,11 @@ public class TicketService {
                 request.formaDePago(),
                 request.tipoMoneda(),
                 request.montoPagado(),
-            false,
-            null,
+                false,
+                null,
                 detalles,
                 true,
+                false,
                 false);
 
             ticketOriginal.setDevolucionRealizada(true);
@@ -150,7 +182,8 @@ public class TicketService {
             String egresosDescripcion,
             List<TicketItemRequest> items,
             boolean devolucion,
-            boolean descontarStock) {
+            boolean descontarStock,
+            boolean forzarMontosPagoEnCero) {
         if (formaDePago == null) {
             throw new IllegalArgumentException("La forma de pago es obligatoria.");
         }
@@ -193,7 +226,7 @@ public class TicketService {
 
         ticket.setDetalleTickets(detalles);
         ticket.setMontoTotal(devolucion ? -redondear(total) : redondear(total));
-        asignarDatosDePago(ticket, formaDePago, tipoMoneda, montoPagado, total, devolucion);
+        asignarDatosDePago(ticket, formaDePago, tipoMoneda, montoPagado, total, devolucion, forzarMontosPagoEnCero);
         return ticketRepository.save(ticket);
     }
 
@@ -209,7 +242,14 @@ public class TicketService {
             TIPO_MONEDA tipoMoneda,
             Float montoPagado,
             float total,
-            boolean devolucion) {
+            boolean devolucion,
+            boolean forzarMontosPagoEnCero) {
+        if (forzarMontosPagoEnCero) {
+            ticket.setTipoMoneda(TIPO_MONEDA.UYU);
+            ticket.setMontoPagado(0f);
+            ticket.setCambioEntregado(0f);
+            return;
+        }
         if (formaDePago != FORMA_DE_PAGO.EFECTIVO) {
             ticket.setTipoMoneda(TIPO_MONEDA.UYU);
             ticket.setMontoPagado(redondear(total));
