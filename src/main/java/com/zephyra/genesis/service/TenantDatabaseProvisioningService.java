@@ -271,7 +271,10 @@ public class TenantDatabaseProvisioningService {
         DataSource tenantDataSource = tenantDataSourceFactory.getTenantDataSource(tenantDatabase);
         try (Connection connection = tenantDataSource.getConnection();
              Statement statement = connection.createStatement()) {
-            statement.executeUpdate("ALTER TABLE caja_diaria ADD COLUMN IF NOT EXISTS fecha_inicio DATE");
+            statement.executeUpdate("ALTER TABLE caja_diaria ADD COLUMN IF NOT EXISTS fecha_inicio TIMESTAMP");
+            statement.executeUpdate("ALTER TABLE caja_diaria ADD COLUMN IF NOT EXISTS fecha_cierre TIMESTAMP");
+            statement.executeUpdate("ALTER TABLE caja_diaria ALTER COLUMN fecha_inicio TYPE TIMESTAMP USING fecha_inicio::timestamp");
+            statement.executeUpdate("ALTER TABLE caja_diaria ALTER COLUMN fecha_cierre TYPE TIMESTAMP USING fecha_cierre::timestamp");
             statement.executeUpdate("ALTER TABLE caja_diaria ADD COLUMN IF NOT EXISTS transferencia_calculada REAL");
             statement.executeUpdate("ALTER TABLE caja_diaria ADD COLUMN IF NOT EXISTS diferencia_pos REAL NOT NULL DEFAULT 0");
             statement.executeUpdate("ALTER TABLE caja_diaria ADD COLUMN IF NOT EXISTS diferencia_efectivo REAL NOT NULL DEFAULT 0");
@@ -284,8 +287,8 @@ public class TenantDatabaseProvisioningService {
                         total_ingresos REAL,
                         total_egresos REAL,
                         transferencia_calculada REAL,
-                        fecha_inicio DATE NOT NULL,
-                        fecha_cierre DATE,
+                        fecha_inicio TIMESTAMP NOT NULL,
+                        fecha_cierre TIMESTAMP,
                         diferencia_pos REAL,
                         diferencia_efectivo REAL,
                         diferencia_dolares REAL,
@@ -297,8 +300,11 @@ public class TenantDatabaseProvisioningService {
                         dolares_declarados REAL
                     )
                     """);
-            statement.executeUpdate("UPDATE caja_global SET fecha_inicio = CURRENT_DATE WHERE fecha_inicio IS NULL");
+                    statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN fecha_inicio TYPE TIMESTAMP USING fecha_inicio::timestamp");
+                    statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN fecha_cierre TYPE TIMESTAMP USING fecha_cierre::timestamp");
+                    statement.executeUpdate("UPDATE caja_global SET fecha_inicio = CURRENT_TIMESTAMP WHERE fecha_inicio IS NULL");
             statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN fecha_inicio SET NOT NULL");
+                    statement.executeUpdate("ALTER TABLE usuario ALTER COLUMN fecha_inicio_de_dia TYPE TIMESTAMP USING fecha_inicio_de_dia::timestamp");
             statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN total_ingresos DROP NOT NULL");
             statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN total_egresos DROP NOT NULL");
             statement.executeUpdate("ALTER TABLE caja_global ADD COLUMN IF NOT EXISTS transferencia_calculada REAL");

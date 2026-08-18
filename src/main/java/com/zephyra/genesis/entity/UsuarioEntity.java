@@ -25,6 +25,7 @@ public class UsuarioEntity extends PersonaEntity {
     private byte[] fotoPerfil;
 
     @Column
+    @Temporal(TemporalType.TIMESTAMP)
     private Date fechaInicioDeDia;
 
     @OneToOne(mappedBy = "usuario", fetch = FetchType.LAZY)

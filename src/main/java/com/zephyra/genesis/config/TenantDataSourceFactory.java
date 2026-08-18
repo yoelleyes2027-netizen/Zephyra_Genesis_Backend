@@ -59,6 +59,7 @@ public class TenantDataSourceFactory {
         dataSource.setPassword(password);
         dataSource.setDriverClassName(driverClassName);
         dataSource.setPoolName("tenant-" + tenantDatabase);
+        dataSource.setConnectionInitSql("SET TIME ZONE 'America/Montevideo'");
         dataSource.setMaximumPoolSize(5);
         return dataSource;
     }

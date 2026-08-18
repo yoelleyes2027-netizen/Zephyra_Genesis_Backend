@@ -1,0 +1,9 @@
+ALTER TABLE persona ALTER COLUMN fecha_creacion TYPE TIMESTAMP USING fecha_creacion::timestamp;
+ALTER TABLE producto ALTER COLUMN fecha_de_ingreso TYPE TIMESTAMP USING fecha_de_ingreso::timestamp;
+ALTER TABLE producto ALTER COLUMN fecha_ultimo_ingreso TYPE TIMESTAMP USING fecha_ultimo_ingreso::timestamp;
+ALTER TABLE ticket ALTER COLUMN fecha_creacion TYPE TIMESTAMP USING fecha_creacion::timestamp;
+ALTER TABLE usuario ALTER COLUMN fecha_inicio_de_dia TYPE TIMESTAMP USING fecha_inicio_de_dia::timestamp;
+ALTER TABLE caja_diaria ALTER COLUMN fecha_inicio TYPE TIMESTAMP USING fecha_inicio::timestamp;
+ALTER TABLE caja_diaria ALTER COLUMN fecha_cierre TYPE TIMESTAMP USING fecha_cierre::timestamp;
+ALTER TABLE caja_global ALTER COLUMN fecha_inicio TYPE TIMESTAMP USING fecha_inicio::timestamp;
+ALTER TABLE caja_global ALTER COLUMN fecha_cierre TYPE TIMESTAMP USING fecha_cierre::timestamp;

@@ -91,10 +91,11 @@ public class CajaService {
                 usuarioId,
                 fechaInicio,
                 FORMA_DE_PAGO.TARJETA));
-        float efectivoCalculado = valor(ticketRepository.sumarMontoPorUsuarioDesdeYFormaDePago(
+        float efectivoCalculado = valor(ticketRepository.sumarMontoTotalPorUsuarioDesdeYFormaDePagoYMoneda(
                 usuarioId,
                 fechaInicio,
-                FORMA_DE_PAGO.EFECTIVO));
+            FORMA_DE_PAGO.EFECTIVO,
+            TIPO_MONEDA.UYU));
         float dolaresCalculados = valor(ticketRepository.sumarMontoPagadoPorUsuarioDesdeYFormaDePagoYMoneda(
             usuarioId,
             fechaInicio,

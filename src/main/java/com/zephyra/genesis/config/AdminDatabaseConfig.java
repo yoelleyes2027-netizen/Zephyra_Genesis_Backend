@@ -26,6 +26,7 @@ public class AdminDatabaseConfig {
         dataSource.setPassword(adminPassword);
         dataSource.setDriverClassName(environment.getProperty("spring.datasource.driver-class-name", "org.postgresql.Driver"));
         dataSource.setPoolName("admin-datasource");
+        dataSource.setConnectionInitSql("SET TIME ZONE 'America/Montevideo'");
         return dataSource;
     }
 
