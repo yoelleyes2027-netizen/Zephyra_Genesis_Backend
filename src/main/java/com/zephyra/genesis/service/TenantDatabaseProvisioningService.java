@@ -297,7 +297,8 @@ public class TenantDatabaseProvisioningService {
                         efectivo_calculado INTEGER,
                         efectivo_declarado INTEGER,
                         dolares_calculados REAL,
-                        dolares_declarados REAL
+                        dolares_declarados REAL,
+                        cotizacion_usd_uyu_inicio DOUBLE PRECISION
                     )
                     """);
                     statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN fecha_inicio TYPE TIMESTAMP USING fecha_inicio::timestamp");
@@ -314,6 +315,7 @@ public class TenantDatabaseProvisioningService {
             statement.executeUpdate("ALTER TABLE caja_global ADD COLUMN IF NOT EXISTS diferencia_dolares REAL");
             statement.executeUpdate("ALTER TABLE caja_global ADD COLUMN IF NOT EXISTS dolares_calculados REAL");
             statement.executeUpdate("ALTER TABLE caja_global ADD COLUMN IF NOT EXISTS dolares_declarados REAL");
+            statement.executeUpdate("ALTER TABLE caja_global ADD COLUMN IF NOT EXISTS cotizacion_usd_uyu_inicio DOUBLE PRECISION");
             statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN diferencia_dolares DROP NOT NULL");
             statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN dolares_calculados DROP NOT NULL");
             statement.executeUpdate("ALTER TABLE caja_global ALTER COLUMN dolares_declarados DROP NOT NULL");

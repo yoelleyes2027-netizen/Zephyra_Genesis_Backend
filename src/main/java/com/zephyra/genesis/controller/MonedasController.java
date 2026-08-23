@@ -31,10 +31,10 @@ public class MonedasController {
 
     @PostMapping("/actualizar-dolar")
     public ResponseEntity<?> actualizarDolar() {
-        MonedaResponse moneda = monedasService.obtenerDolar();
+        double cotizacion = monedasService.obtenerValorUsdUYUDesdeApi();
         return ResponseEntity.ok(Map.of(
                 "ok", true,
-                "valorUSD", moneda.valor_en_pesos(),
+            "valorUSD", cotizacion,
                 "msg", "Dólar actualizado correctamente"
         ));
     }

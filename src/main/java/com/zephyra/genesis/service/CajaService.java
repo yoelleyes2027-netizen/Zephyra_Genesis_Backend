@@ -27,18 +27,21 @@ public class CajaService {
     private final TicketRepository ticketRepository;
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
+    private final MonedasService monedasService;
 
     public CajaService(
             CajaGlobalRepository cajaGlobalRepository,
             CajaDiariaRepository cajaDiariaRepository,
             TicketRepository ticketRepository,
             UsuarioRepository usuarioRepository,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder,
+            MonedasService monedasService) {
         this.cajaGlobalRepository = cajaGlobalRepository;
         this.cajaDiariaRepository = cajaDiariaRepository;
         this.ticketRepository = ticketRepository;
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
+        this.monedasService = monedasService;
     }
 
     @Transactional
@@ -49,7 +52,9 @@ public class CajaService {
             throw new IllegalArgumentException("Solo un admin de la BDD puede iniciar el día.");
         }
 
+        double cotizacionUsdUyu = monedasService.obtenerValorUsdUYUDesdeApi();
         CajaGlobalEntity cajaGlobal = new CajaGlobalEntity(new Date());
+        cajaGlobal.setCotizacionUsdUyuInicio(cotizacionUsdUyu);
         return cajaGlobalRepository.save(cajaGlobal);
     }
 

@@ -3,6 +3,7 @@ package com.zephyra.genesis.controller;
 import com.zephyra.genesis.dto.AutorizacionDevolucionRequest;
 import com.zephyra.genesis.dto.DetalleTicketKeyRequest;
 import com.zephyra.genesis.dto.DevolucionRequest;
+import com.zephyra.genesis.dto.EgresoRequest;
 import com.zephyra.genesis.dto.TicketRequest;
 import com.zephyra.genesis.dto.TicketResponse;
 import com.zephyra.genesis.service.AuthService;
@@ -48,6 +49,16 @@ public class TicketController {
         return ResponseEntity.status(201).body(Map.of(
                 "ok", true,
                 "mensaje", "Devolución por caja registrada con éxito",
+                "ticket_id", ticket.id()));
+    }
+
+    @PostMapping("/egresos")
+    public ResponseEntity<?> crearEgreso(@RequestBody EgresoRequest request, HttpServletRequest httpServletRequest) {
+        Long usuarioId = obtenerUsuarioIdDesdeCookie(httpServletRequest);
+        TicketResponse ticket = ticketService.crearEgreso(request, usuarioId);
+        return ResponseEntity.status(201).body(Map.of(
+                "ok", true,
+                "mensaje", "Egreso registrado con éxito",
                 "ticket_id", ticket.id()));
     }
 

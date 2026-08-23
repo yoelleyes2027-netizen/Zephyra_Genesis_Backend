@@ -63,7 +63,8 @@ public class CajaController {
         return ResponseEntity.ok(Map.of(
                 "ok", true,
                 "mensaje", "Dia iniciado correctamente",
-                "caja_global_id", cajaGlobal.getId()));
+                "caja_global_id", cajaGlobal.getId(),
+                "cotizacion_usd_uyu", cajaGlobal.getCotizacionUsdUyuInicio()));
     }
 
     @PostMapping("/cerrar")

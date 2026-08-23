@@ -3,6 +3,7 @@ package com.zephyra.genesis.service;
 import com.zephyra.genesis.dto.TicketDetalleResponse;
 import com.zephyra.genesis.dto.DetalleTicketKeyRequest;
 import com.zephyra.genesis.dto.DevolucionRequest;
+import com.zephyra.genesis.dto.EgresoRequest;
 import com.zephyra.genesis.dto.TicketItemRequest;
 import com.zephyra.genesis.dto.TicketRequest;
 import com.zephyra.genesis.dto.TicketResponse;
@@ -113,6 +114,41 @@ public class TicketService {
                 false,
                 true);
         return toResponse(ticket);
+    }
+
+    @Transactional
+    public TicketResponse crearEgreso(EgresoRequest request, Long usuarioId) {
+        if (request == null || request.tipoEgreso() == null || request.monto() == null || request.monto() <= 0f) {
+            throw new IllegalArgumentException("Debes indicar tipo de egreso y un monto mayor a 0.");
+        }
+
+        UsuarioEntity usuario = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
+        if (usuario.getRol() != ROL.ADMIN && usuario.getRol() != ROL.CAJERO) {
+            throw new IllegalArgumentException("Solo admin o cajero pueden registrar un egreso.");
+        }
+
+        ClienteEntity cliente = clienteRepository.findById(1L)
+                .orElseThrow(() -> new IllegalArgumentException("No existe el cliente consumidor final para registrar egresos."));
+
+        float monto = redondear(Math.abs(request.monto()));
+
+        TicketEntity ticket = new TicketEntity();
+        ticket.setFechaCreacion(new Date());
+        ticket.setFormaDePago(FORMA_DE_PAGO.EFECTIVO);
+        ticket.setTipoMoneda(TIPO_MONEDA.UYU);
+        ticket.setMontoTotal(-monto);
+        ticket.setMontoPagado(0f);
+        ticket.setCambioEntregado(0f);
+        ticket.setDevolucion(false);
+        ticket.setDevolucionRealizada(false);
+        ticket.setEgreso(true);
+        ticket.setEgresosDescripcion(request.tipoEgreso().name());
+        ticket.setUsuario(usuario);
+        ticket.setCliente(cliente);
+        ticket.setDetalleTickets(new ArrayList<>());
+
+        return toResponse(ticketRepository.save(ticket));
     }
 
     @Transactional

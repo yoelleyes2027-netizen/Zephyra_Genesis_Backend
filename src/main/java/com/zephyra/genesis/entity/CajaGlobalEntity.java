@@ -67,6 +67,9 @@ public class CajaGlobalEntity {
     @Column
     private Float dolaresDeclarados;
 
+    @Column(name = "cotizacion_usd_uyu_inicio")
+    private Double cotizacionUsdUyuInicio;
+
     @OneToMany(mappedBy = "cajaGlobal", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<CajaDiariaEntity> cajasDiarias = new ArrayList<>();
 
@@ -137,6 +140,10 @@ public class CajaGlobalEntity {
         return dolaresDeclarados;
     }
 
+    public Double getCotizacionUsdUyuInicio() {
+        return cotizacionUsdUyuInicio;
+    }
+
     public List<CajaDiariaEntity> getCajasDiarias() {
         return cajasDiarias;
     }
@@ -199,6 +206,10 @@ public class CajaGlobalEntity {
 
     public void setDolaresDeclarados(Float dolaresDeclarados) {
         this.dolaresDeclarados = dolaresDeclarados;
+    }
+
+    public void setCotizacionUsdUyuInicio(Double cotizacionUsdUyuInicio) {
+        this.cotizacionUsdUyuInicio = cotizacionUsdUyuInicio;
     }
 
     public void setCajasDiarias(List<CajaDiariaEntity> cajasDiarias) {
