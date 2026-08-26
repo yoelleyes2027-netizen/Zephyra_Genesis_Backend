@@ -52,6 +52,11 @@ public class CajaService {
             throw new IllegalArgumentException("Solo un admin de la BDD puede iniciar el día.");
         }
 
+        CajaGlobalEntity ultimaCajaGlobal = cajaGlobalRepository.findTopByOrderByIdDesc().orElse(null);
+        if (ultimaCajaGlobal != null && ultimaCajaGlobal.getFechaCierre() == null) {
+            throw new IllegalStateException("Ya hay un día iniciado. Debes cerrar el día actual antes de iniciar uno nuevo.");
+        }
+
         double cotizacionUsdUyu = monedasService.obtenerValorUsdUYUDesdeApi();
         CajaGlobalEntity cajaGlobal = new CajaGlobalEntity(new Date());
         cajaGlobal.setCotizacionUsdUyuInicio(cotizacionUsdUyu);
@@ -245,23 +250,32 @@ public class CajaService {
         if (cajaGlobalActual == null) {
             return;
         }
-        if (cajaGlobalActual.getFechaCierre() != null) {
+        boolean diaAbierto = cajaGlobalActual.getFechaCierre() == null;
+        if (!diaAbierto) {
             return;
         }
 
         CajaDiariaEntity cajaDiaria = cajaDiariaRepository.findByUsuario_Id(usuarioToken.id()).orElse(null);
-        if (cajaDiaria == null
-            || cajaDiaria.getCajaGlobal() == null
-            || cajaDiaria.getCajaGlobal().getId() == null
-            || !cajaDiaria.getCajaGlobal().getId().equals(cajaGlobalActual.getId())
-            || cajaDiaria.getFechaInicio() == null) {
-            return;
+        boolean cajaAbiertaUsuario = cajaDiaria != null
+                && cajaDiaria.getCajaGlobal() != null
+                && cajaDiaria.getCajaGlobal().getId() != null
+                && cajaDiaria.getCajaGlobal().getId().equals(cajaGlobalActual.getId())
+                && cajaDiaria.getFechaInicio() != null
+                && cajaDiaria.getFechaCierre() == null;
+
+        StringBuilder mensaje = new StringBuilder();
+        if ("admin".equals(rol)) {
+            mensaje.append("Antes de cerrar sesión primero cierra día.");
+        }
+        if (cajaAbiertaUsuario) {
+            if (!mensaje.isEmpty()) {
+                mensaje.append("\n");
+            }
+            mensaje.append("Debes cerrar caja antes de cerrar sesión.");
         }
 
-        boolean cajaCerrada = cajaDiaria.getFechaCierre() != null;
-
-        if (!cajaCerrada) {
-            throw new IllegalStateException("Debes cerrar caja antes de cerrar sesión.");
+        if (!mensaje.isEmpty()) {
+            throw new IllegalStateException(mensaje.toString());
         }
     }
 
