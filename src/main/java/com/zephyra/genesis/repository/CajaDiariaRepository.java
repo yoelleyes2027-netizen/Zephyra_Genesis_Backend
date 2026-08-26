@@ -11,6 +11,8 @@ import java.util.Optional;
 public interface CajaDiariaRepository extends JpaRepository<CajaDiariaEntity, Long> {
     Optional<CajaDiariaEntity> findByUsuario_Id(Long usuarioId);
 
+    boolean existsByCajaGlobal_IdAndFechaInicioIsNotNullAndFechaCierreIsNull(Long cajaGlobalId);
+
     @Query(value = "SELECT " +
             "COALESCE(SUM(total_ingresos), 0), " +
             "COALESCE(SUM(total_egresos), 0), " +

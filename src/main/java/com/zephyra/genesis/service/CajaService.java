@@ -16,6 +16,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -208,8 +209,19 @@ public class CajaService {
         CajaGlobalEntity cajaGlobalActual = cajaGlobalRepository.findTopByOrderByIdDesc()
                 .orElseThrow(() -> new IllegalArgumentException("Primero debes iniciar el día."));
 
+        List<String> advertencias = new ArrayList<>();
         if (cajaGlobalActual.getFechaCierre() != null) {
-            throw new IllegalArgumentException("El día actual ya está cerrado.");
+            advertencias.add("El día actual ya está cerrado.");
+        }
+
+        boolean hayCajasAbiertas = cajaDiariaRepository
+                .existsByCajaGlobal_IdAndFechaInicioIsNotNullAndFechaCierreIsNull(cajaGlobalActual.getId());
+        if (hayCajasAbiertas) {
+            advertencias.add("Debes cerrar todas las cajas antes de finalizar día.");
+        }
+
+        if (!advertencias.isEmpty()) {
+            throw new IllegalStateException(String.join("\n", advertencias));
         }
 
         List<Object[]> filasTotales = cajaDiariaRepository.obtenerTotalesCierreDia();
