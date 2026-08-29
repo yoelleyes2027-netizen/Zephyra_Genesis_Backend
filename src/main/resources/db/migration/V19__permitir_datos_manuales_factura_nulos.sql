@@ -1,0 +1,2 @@
+ALTER TABLE factura ALTER COLUMN fecha_emision DROP NOT NULL;
+ALTER TABLE factura ALTER COLUMN nro_serie DROP NOT NULL;

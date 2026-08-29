@@ -295,6 +295,8 @@ public class TenantDatabaseProvisioningService {
 
             statement.executeUpdate("CREATE SEQUENCE IF NOT EXISTS factura_nro_factura_seq");
             statement.executeUpdate("ALTER TABLE factura ALTER COLUMN nro_factura SET DEFAULT nextval('factura_nro_factura_seq')");
+            statement.executeUpdate("ALTER TABLE factura ALTER COLUMN fecha_emision DROP NOT NULL");
+            statement.executeUpdate("ALTER TABLE factura ALTER COLUMN nro_serie DROP NOT NULL");
             statement.executeUpdate("CREATE UNIQUE INDEX IF NOT EXISTS ux_factura_nro_factura ON factura(nro_factura)");
             statement.executeUpdate("""
                     SELECT setval(

@@ -25,7 +25,7 @@ public class ProveedorService {
 
     @Transactional(readOnly = true)
     public List<ProveedorResponse> listar() {
-        return proveedorRepository.findAll().stream().map(this::toResponse).toList();
+        return proveedorRepository.findAllByOrderByRazonSocialAsc().stream().map(this::toResponse).toList();
     }
 
     @Transactional(readOnly = true)

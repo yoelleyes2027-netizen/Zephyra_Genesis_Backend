@@ -43,6 +43,15 @@ public class ProductoService {
         return productoRepository.findByActivoTrueAndDescripcionContainingIgnoreCaseOrderByDescripcionAsc(descripcion).stream().map(this::toResponse).toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<ProductoResponse> buscarPorProveedor(Long proveedorId, String busqueda) {
+        if (proveedorId == null) {
+            throw new IllegalArgumentException("El proveedor es obligatorio.");
+        }
+        String textoBusqueda = busqueda == null ? "" : busqueda.trim();
+        return productoRepository.buscarActivosPorProveedor(proveedorId, textoBusqueda).stream().map(this::toResponse).toList();
+    }
+
     @Transactional
     public ProductoResponse crear(ProductoRequest request) {
         validarDuplicados(null, request);

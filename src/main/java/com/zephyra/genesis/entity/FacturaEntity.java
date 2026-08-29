@@ -20,7 +20,7 @@ import java.util.List;
 @Table(name = "factura")
 @PrimaryKeyJoinColumn(name = "id")
 public class FacturaEntity extends DocumentoEntity {
-    @Column(name = "fecha_emision", nullable = false)
+    @Column(name = "fecha_emision")
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaEmision;
 
@@ -30,7 +30,7 @@ public class FacturaEntity extends DocumentoEntity {
     @Column(name = "nro_factura", unique = true, insertable = false, updatable = false)
     private Integer nroFactura;
 
-    @Column(name = "nro_serie", nullable = false, unique = true)
+    @Column(name = "nro_serie", unique = true)
     private String nroSerie;
 
     @Column(name = "remito_realizado", nullable = false)

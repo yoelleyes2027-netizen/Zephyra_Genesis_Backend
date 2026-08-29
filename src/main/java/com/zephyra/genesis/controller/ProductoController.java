@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -51,6 +52,13 @@ public class ProductoController {
     @GetMapping("/descripcion/{descripcion}")
     public ResponseEntity<?> buscarPorDescripcion(@PathVariable String descripcion) {
         return ResponseEntity.ok(Map.of("ok", true, "data", productoService.buscarPorDescripcion(descripcion)));
+    }
+    
+    @GetMapping("/factura")
+    public ResponseEntity<?> buscarParaFactura(
+            @RequestParam Long proveedorId,
+            @RequestParam(defaultValue = "") String busqueda) {
+        return ResponseEntity.ok(Map.of("ok", true, "data", productoService.buscarPorProveedor(proveedorId, busqueda)));
     }
 
     @PutMapping("/{codigo}")

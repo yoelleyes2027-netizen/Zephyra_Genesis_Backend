@@ -29,6 +29,7 @@ public class CajaService {
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
     private final MonedasService monedasService;
+    private final FacturaService facturaService;
 
     public CajaService(
             CajaGlobalRepository cajaGlobalRepository,
@@ -36,13 +37,15 @@ public class CajaService {
             TicketRepository ticketRepository,
             UsuarioRepository usuarioRepository,
             PasswordEncoder passwordEncoder,
-            MonedasService monedasService) {
+            MonedasService monedasService,
+            FacturaService facturaService) {
         this.cajaGlobalRepository = cajaGlobalRepository;
         this.cajaDiariaRepository = cajaDiariaRepository;
         this.ticketRepository = ticketRepository;
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
         this.monedasService = monedasService;
+        this.facturaService = facturaService;
     }
 
     @Transactional
@@ -224,6 +227,7 @@ public class CajaService {
             throw new IllegalStateException(String.join("\n", advertencias));
         }
 
+        facturaService.actualizarPreciosCompraDesde(cajaGlobalActual.getFechaInicio());
         List<Object[]> filasTotales = cajaDiariaRepository.obtenerTotalesCierreDia();
         Object[] totales = (filasTotales == null || filasTotales.isEmpty() || filasTotales.get(0) == null)
             ? new Object[0]
