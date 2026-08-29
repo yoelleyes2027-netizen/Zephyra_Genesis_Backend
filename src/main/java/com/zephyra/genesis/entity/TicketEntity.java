@@ -1,28 +1,17 @@
 package com.zephyra.genesis.entity;
 import jakarta.persistence.*;
-import java.util.Date;
 
 @Entity
 @Table(name = "ticket")
-public class TicketEntity {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @Column(name = "fecha_creacion", nullable = false)
-    @Temporal(TemporalType.TIMESTAMP)
-    private Date fechaCreacion;
+@PrimaryKeyJoinColumn(name = "id")
+public class TicketEntity extends DocumentoEntity {
 
     @Column(name = "forma_de_pago", nullable = false)
     @Enumerated(EnumType.STRING)
     private FORMA_DE_PAGO formaDePago;
 
-    @Column(name = "monto_total", nullable = false)
-    private float montoTotal;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "tipo_moneda")
-    private TIPO_MONEDA tipoMoneda;
+    @Column(name = "nro_ticket", unique = true, insertable = false, updatable = false)
+    private Integer nroTicket;
 
     @Column(name = "monto_pagado")
     private Float montoPagado;
@@ -59,32 +48,20 @@ public class TicketEntity {
     public TicketEntity(FORMA_DE_PAGO formaDePago, float montoTotal,
          UsuarioEntity usuario, ClienteEntity cliente, 
         java.util.List<DetalleTicket> detalleTickets) {
-        this.fechaCreacion = new Date();
+        setFechaCreacion(new java.util.Date());
         this.formaDePago = formaDePago;
-        this.montoTotal = montoTotal;
+        setMontoTotal(montoTotal);
         this.usuario = usuario;
         this.cliente = cliente;
         this.detalleTickets = detalleTickets;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public Date getFechaCreacion() {
-        return fechaCreacion;
     }
 
     public FORMA_DE_PAGO getFormaDePago() {
         return formaDePago;
     }
 
-    public float getMontoTotal() {
-        return montoTotal;
-    }
-
-    public TIPO_MONEDA getTipoMoneda() {
-        return tipoMoneda;
+    public Integer getNroTicket() {
+        return nroTicket;
     }
 
     public Float getMontoPagado() {
@@ -119,24 +96,8 @@ public class TicketEntity {
         return cliente;
     }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public void setFechaCreacion(Date fechaCreacion) {
-        this.fechaCreacion = fechaCreacion;
-    }
-
     public void setFormaDePago(FORMA_DE_PAGO formaDePago) {
         this.formaDePago = formaDePago;
-    }
-
-    public void setMontoTotal(float montoTotal) {
-        this.montoTotal = montoTotal;
-    }
-
-    public void setTipoMoneda(TIPO_MONEDA tipoMoneda) {
-        this.tipoMoneda = tipoMoneda;
     }
 
     public void setMontoPagado(Float montoPagado) {

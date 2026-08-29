@@ -35,8 +35,11 @@ public class TenantDatabaseProvisioningService {
 
     public void ensureTenantDatabase(String tenantDatabase) {
         validateTenantDatabase(tenantDatabase);
-        if (!databaseExists(tenantDatabase)) {
+        boolean existingDatabase = databaseExists(tenantDatabase);
+        if (!existingDatabase) {
             createTenantDatabase(tenantDatabase);
+        } else {
+            prepararHerenciaDocumento(tenantDatabase);
         }
         initializeSchema(tenantDatabase);
         normalizePersonaFechaCreacionColumn(tenantDatabase);
@@ -123,6 +126,52 @@ public class TenantDatabaseProvisioningService {
             statement.executeUpdate("CREATE DATABASE \"" + tenantDatabase + "\"");
         } catch (SQLException ex) {
             throw new IllegalStateException("No se pudo crear la base de datos del tenant.", ex);
+        }
+    }
+
+    private void prepararHerenciaDocumento(String tenantDatabase) {
+        DataSource tenantDataSource = tenantDataSourceFactory.getTenantDataSource(tenantDatabase);
+        try (Connection connection = tenantDataSource.getConnection();
+             Statement statement = connection.createStatement()) {
+            if (!columnExists(connection, "ticket", "fecha_creacion")) {
+                return;
+            }
+
+            statement.executeUpdate("""
+                    CREATE TABLE IF NOT EXISTS documento (
+                        id BIGSERIAL PRIMARY KEY,
+                        monto_total REAL NOT NULL,
+                        tipo_moneda VARCHAR(3) NOT NULL,
+                        fecha_creacion TIMESTAMP NOT NULL
+                    )
+                    """);
+            statement.executeUpdate("""
+                    INSERT INTO documento (id, monto_total, tipo_moneda, fecha_creacion)
+                    SELECT t.id, COALESCE(t.monto_total, 0), COALESCE(t.tipo_moneda, 'UYU'),
+                           COALESCE(t.fecha_creacion, CURRENT_TIMESTAMP)
+                    FROM ticket t
+                    ON CONFLICT (id) DO NOTHING
+                    """);
+            statement.executeUpdate("""
+                    SELECT setval(
+                        pg_get_serial_sequence('documento', 'id'),
+                        GREATEST(COALESCE((SELECT MAX(id) FROM documento), 0) + 1, 1),
+                        false
+                    )
+                    """);
+            statement.executeUpdate("CREATE SEQUENCE IF NOT EXISTS ticket_nro_ticket_seq");
+            statement.executeUpdate("ALTER TABLE ticket ADD COLUMN IF NOT EXISTS nro_ticket INTEGER");
+            statement.executeUpdate("UPDATE ticket SET nro_ticket = nextval('ticket_nro_ticket_seq') WHERE nro_ticket IS NULL");
+            statement.executeUpdate("ALTER TABLE ticket ALTER COLUMN nro_ticket SET DEFAULT nextval('ticket_nro_ticket_seq')");
+            statement.executeUpdate("ALTER TABLE ticket ALTER COLUMN nro_ticket SET NOT NULL");
+            statement.executeUpdate("CREATE UNIQUE INDEX IF NOT EXISTS ux_ticket_nro_ticket ON ticket(nro_ticket)");
+            statement.executeUpdate("ALTER TABLE ticket DROP CONSTRAINT IF EXISTS fk_ticket_documento");
+            statement.executeUpdate("ALTER TABLE ticket ADD CONSTRAINT fk_ticket_documento FOREIGN KEY (id) REFERENCES documento(id)");
+            statement.executeUpdate("ALTER TABLE ticket DROP COLUMN fecha_creacion");
+            statement.executeUpdate("ALTER TABLE ticket DROP COLUMN monto_total");
+            statement.executeUpdate("ALTER TABLE ticket DROP COLUMN tipo_moneda");
+        } catch (SQLException ex) {
+            throw new IllegalStateException("No se pudo preparar la herencia de documentos del tenant.", ex);
         }
     }
 
@@ -230,32 +279,30 @@ public class TenantDatabaseProvisioningService {
         DataSource tenantDataSource = tenantDataSourceFactory.getTenantDataSource(tenantDatabase);
         try (Connection connection = tenantDataSource.getConnection();
              Statement statement = connection.createStatement()) {
-            statement.executeUpdate("ALTER TABLE ticket ADD COLUMN IF NOT EXISTS fecha_creacion TIMESTAMP");
-            statement.executeUpdate("ALTER TABLE ticket ADD COLUMN IF NOT EXISTS forma_de_pago VARCHAR(255)");
-            statement.executeUpdate("ALTER TABLE ticket ADD COLUMN IF NOT EXISTS monto_total REAL");
-            statement.executeUpdate("ALTER TABLE ticket ADD COLUMN IF NOT EXISTS tipo_moneda VARCHAR(3)");
-            statement.executeUpdate("ALTER TABLE ticket ADD COLUMN IF NOT EXISTS monto_pagado REAL");
-            statement.executeUpdate("ALTER TABLE ticket ADD COLUMN IF NOT EXISTS cambio_entregado REAL");
-            statement.executeUpdate("ALTER TABLE ticket ADD COLUMN IF NOT EXISTS devolucion BOOLEAN NOT NULL DEFAULT FALSE");
-            statement.executeUpdate("ALTER TABLE ticket ADD COLUMN IF NOT EXISTS devolucion_realizada BOOLEAN NOT NULL DEFAULT FALSE");
-            statement.executeUpdate("ALTER TABLE ticket ADD COLUMN IF NOT EXISTS egreso BOOLEAN NOT NULL DEFAULT FALSE");
-            statement.executeUpdate("ALTER TABLE ticket ADD COLUMN IF NOT EXISTS egresos_descripcion VARCHAR(255)");
-            statement.executeUpdate("ALTER TABLE ticket ALTER COLUMN tipo_moneda SET DEFAULT 'UYU'");
-            statement.executeUpdate("UPDATE ticket SET tipo_moneda = 'UYU' WHERE tipo_moneda IS NULL");
-            statement.executeUpdate("UPDATE ticket SET monto_pagado = monto_total WHERE forma_de_pago IN ('TARJETA','TRANSFERENCIA') AND monto_pagado IS NULL");
+            statement.executeUpdate("CREATE SEQUENCE IF NOT EXISTS ticket_nro_ticket_seq");
+            statement.executeUpdate("ALTER TABLE ticket ADD COLUMN IF NOT EXISTS nro_ticket INTEGER");
+            statement.executeUpdate("UPDATE ticket SET nro_ticket = nextval('ticket_nro_ticket_seq') WHERE nro_ticket IS NULL");
+            statement.executeUpdate("ALTER TABLE ticket ALTER COLUMN nro_ticket SET DEFAULT nextval('ticket_nro_ticket_seq')");
+            statement.executeUpdate("ALTER TABLE ticket ALTER COLUMN nro_ticket SET NOT NULL");
+            statement.executeUpdate("CREATE UNIQUE INDEX IF NOT EXISTS ux_ticket_nro_ticket ON ticket(nro_ticket)");
+            statement.executeUpdate("""
+                    SELECT setval(
+                        'ticket_nro_ticket_seq',
+                        GREATEST(COALESCE((SELECT MAX(nro_ticket) FROM ticket), 0) + 1, 1),
+                        false
+                    )
+                    """);
 
-            if (columnExists(connection, "ticket", "fechacreacion")) {
-                statement.executeUpdate("UPDATE ticket SET fecha_creacion = COALESCE(fecha_creacion, fechacreacion) WHERE fecha_creacion IS NULL");
-                statement.executeUpdate("ALTER TABLE ticket DROP COLUMN IF EXISTS fechacreacion");
-            }
-            if (columnExists(connection, "ticket", "formadepago")) {
-                statement.executeUpdate("UPDATE ticket SET forma_de_pago = COALESCE(forma_de_pago, formadepago) WHERE forma_de_pago IS NULL");
-                statement.executeUpdate("ALTER TABLE ticket DROP COLUMN IF EXISTS formadepago");
-            }
-            if (columnExists(connection, "ticket", "montototal")) {
-                statement.executeUpdate("UPDATE ticket SET monto_total = COALESCE(monto_total, montototal) WHERE monto_total IS NULL");
-                statement.executeUpdate("ALTER TABLE ticket DROP COLUMN IF EXISTS montototal");
-            }
+            statement.executeUpdate("CREATE SEQUENCE IF NOT EXISTS factura_nro_factura_seq");
+            statement.executeUpdate("ALTER TABLE factura ALTER COLUMN nro_factura SET DEFAULT nextval('factura_nro_factura_seq')");
+            statement.executeUpdate("CREATE UNIQUE INDEX IF NOT EXISTS ux_factura_nro_factura ON factura(nro_factura)");
+            statement.executeUpdate("""
+                    SELECT setval(
+                        'factura_nro_factura_seq',
+                        GREATEST(COALESCE((SELECT MAX(nro_factura) FROM factura), 0) + 1, 1),
+                        false
+                    )
+                    """);
 
             statement.executeUpdate("ALTER TABLE detalle_ticket ADD COLUMN IF NOT EXISTS precio_unitario REAL");
             if (columnExists(connection, "detalle_ticket", "preciounitario")) {

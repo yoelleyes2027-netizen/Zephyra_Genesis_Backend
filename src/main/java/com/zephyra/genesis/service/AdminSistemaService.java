@@ -555,10 +555,11 @@ public class AdminSistemaService {
         return ejecutarConsulta(baseDatos, """
                 SELECT
                     t.id,
-                    t.fecha_creacion AS "fechaCreacion",
+                    t.nro_ticket AS "nroTicket",
+                    d.fecha_creacion AS "fechaCreacion",
                     t.forma_de_pago AS "formaDePago",
-                    t.monto_total AS "montoTotal",
-                    t.tipo_moneda AS "tipoMoneda",
+                    d.monto_total AS "montoTotal",
+                    d.tipo_moneda AS "tipoMoneda",
                     t.monto_pagado AS "montoPagado",
                     t.cambio_entregado AS "cambioEntregado",
                     t.devolucion,
@@ -569,14 +570,13 @@ public class AdminSistemaService {
                     up.name AS "usuarioNombre",
                     t.cliente_id AS "clienteId",
                     cp.name AS "clienteNombre",
-                    COUNT(dt.producto_id) AS "detalleCount"
+                    (SELECT COUNT(*) FROM detalle_ticket dt WHERE dt.ticket_id = t.id) AS "detalleCount"
                 FROM ticket t
+                JOIN documento d ON d.id = t.id
                 LEFT JOIN usuario u ON u.id = t.usuario_id
                 LEFT JOIN persona up ON up.id = u.id
                 LEFT JOIN cliente c ON c.id = t.cliente_id
                 LEFT JOIN persona cp ON cp.id = c.id
-                LEFT JOIN detalle_ticket dt ON dt.ticket_id = t.id
-                GROUP BY t.id, up.name, cp.name
                 ORDER BY t.id DESC
                 """);
     }
@@ -712,6 +712,7 @@ public class AdminSistemaService {
     private Map<String, Object> toTicketMap(TicketEntity ticket) {
         Map<String, Object> row = new HashMap<>();
         row.put("id", ticket.getId());
+        row.put("nroTicket", ticket.getNroTicket());
         row.put("fechaCreacion", ticket.getFechaCreacion());
         row.put("formaDePago", ticket.getFormaDePago() != null ? ticket.getFormaDePago().name() : null);
         row.put("montoTotal", ticket.getMontoTotal());
