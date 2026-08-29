@@ -13,6 +13,7 @@ import com.zephyra.genesis.repository.FacturaRepository;
 import com.zephyra.genesis.repository.ProductoRepository;
 import com.zephyra.genesis.repository.ProveedorRepository;
 import com.zephyra.genesis.repository.UsuarioRepository;
+import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,16 +29,19 @@ public class FacturaService {
     private final ProveedorRepository proveedorRepository;
     private final ProductoRepository productoRepository;
     private final UsuarioRepository usuarioRepository;
+    private final EntityManager entityManager;
 
     public FacturaService(
             FacturaRepository facturaRepository,
             ProveedorRepository proveedorRepository,
             ProductoRepository productoRepository,
-            UsuarioRepository usuarioRepository) {
+            UsuarioRepository usuarioRepository,
+            EntityManager entityManager) {
         this.facturaRepository = facturaRepository;
         this.proveedorRepository = proveedorRepository;
         this.productoRepository = productoRepository;
         this.usuarioRepository = usuarioRepository;
+        this.entityManager = entityManager;
     }
 
     @Transactional
@@ -78,11 +82,17 @@ public class FacturaService {
             detalle.setCantidad(item.cantidad());
             detalle.setPrecioCompra(item.precioCompra());
             factura.getDetallesFactura().add(detalle);
+
+            // La carga de factura representa ingreso de mercaderia, por eso aumenta stock.
+            producto.setStock(producto.getStock() + item.cantidad());
+            producto.setFechaUltimoIngreso(new Date());
             montoTotal += item.cantidad() * item.precioCompra();
         }
 
         factura.setMontoTotal(montoTotal);
         FacturaEntity facturaGuardada = facturaRepository.save(factura);
+        entityManager.flush();
+        entityManager.refresh(facturaGuardada);
         return toResponse(facturaGuardada);
     }
 
