@@ -102,6 +102,16 @@ public class TicketController {
         }
     }
 
+    @GetMapping("/nro/{nroTicket}")
+    public ResponseEntity<?> buscarPorNroTicket(@PathVariable Integer nroTicket) {
+        try {
+            TicketResponse ticket = ticketService.buscarPorNroTicket(nroTicket);
+            return ResponseEntity.ok(Map.of("ok", true, "ticket", ticket, "productos", ticket.detalleTickets()));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(404).body(Map.of("ok", false, "mensaje", ex.getMessage()));
+        }
+    }
+
     @PostMapping("/eliminar-articulos")
     public ResponseEntity<?> eliminarArticulos(@RequestBody Map<String, List<DetalleTicketKeyRequest>> body) {
         ticketService.eliminarArticulos(body.getOrDefault("detalles", List.of()));

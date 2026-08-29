@@ -8,9 +8,12 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.Date;
+import java.util.Optional;
 
 public interface TicketRepository extends JpaRepository<TicketEntity, Long> {
 	boolean existsByCliente_Id(Long clienteId);
+
+	Optional<TicketEntity> findByNroTicket(Integer nroTicket);
 
 	@Query("""
 			SELECT COALESCE(SUM(t.montoTotal), 0)

@@ -328,6 +328,12 @@ public class TicketService {
                 .orElseThrow(() -> new IllegalArgumentException("Ticket no encontrado o inactivo"));
     }
 
+    @Transactional(readOnly = true)
+    public TicketResponse buscarPorNroTicket(Integer nroTicket) {
+        return ticketRepository.findByNroTicket(nroTicket).map(this::toResponse)
+                .orElseThrow(() -> new IllegalArgumentException("Ticket no encontrado o inactivo"));
+    }
+
     @Transactional
     public void desactivar(Long ticketId) {
         TicketEntity ticket = ticketRepository.findById(ticketId)
