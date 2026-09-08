@@ -45,6 +45,8 @@ import java.util.function.Supplier;
 @Transactional
 public class AdminSistemaService {
 
+    private static final java.util.regex.Pattern SAFE_TABLE_NAME = java.util.regex.Pattern.compile("[a-z0-9_]{1,63}");
+
     private final UsuarioRepository usuarioRepository;
     private final ClienteRepository clienteRepository;
     private final ProveedorRepository proveedorRepository;
@@ -627,7 +629,19 @@ public class AdminSistemaService {
         if (normalizedTable.isBlank()) {
             throw new IllegalArgumentException("Tabla no soportada.");
         }
-        return ejecutarConsulta(baseDatos, "SELECT * FROM " + quoteIdentifier(normalizedTable) + " ORDER BY 1");
+        String tablaSegura = resolverTablaExistente(baseDatos, normalizedTable);
+        return ejecutarConsulta(baseDatos, "SELECT * FROM " + quoteIdentifier(tablaSegura) + " ORDER BY 1");
+    }
+
+    /** Solo permite nombres de tabla reales del esquema, evitando construir SQL con datos del cliente. */
+    private String resolverTablaExistente(String baseDatos, String tabla) {
+        if (!SAFE_TABLE_NAME.matcher(tabla).matches()) {
+            throw new IllegalArgumentException("Tabla no soportada.");
+        }
+        return listarTablas(baseDatos).stream()
+                .filter(existente -> existente.equalsIgnoreCase(tabla))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Tabla no soportada."));
     }
 
     private List<Map<String, Object>> ejecutarConsulta(String baseDatos, String sql) {

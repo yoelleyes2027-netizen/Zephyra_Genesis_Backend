@@ -62,12 +62,14 @@ jobs:
       - name: Deploy backend on EC2
         env:
           EC2_SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: |
           mkdir -p ~/.ssh
           printf '%s\n' "$EC2_SSH_PRIVATE_KEY" > ~/.ssh/zephyra_ec2.pem
           chmod 600 ~/.ssh/zephyra_ec2.pem
+          escaped_jwt_secret=$(printf '%q' "$JWT_SECRET")
           for attempt in 1 2 3 4 5 6; do
-            if ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout=15 -i ~/.ssh/zephyra_ec2.pem ec2-user@"$EC2_HOST" "cd /home/ec2-user/zephyra && aws ecr get-login-password --region ${AWS_REGION} | sudo docker login --username AWS --password-stdin ${ECR_REGISTRY} && sudo docker-compose pull backend && sudo docker-compose up -d backend"; then
+            if ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout=15 -i ~/.ssh/zephyra_ec2.pem ec2-user@"$EC2_HOST" "JWT_SECRET=${escaped_jwt_secret} AWS_REGION='${AWS_REGION}' ECR_REGISTRY='${ECR_REGISTRY}' bash -lc 'set -euo pipefail; cd /home/ec2-user/zephyra; tmp_env=\$(mktemp); if [ -f .env ]; then grep -v \"^JWT_SECRET=\" .env > \"\$tmp_env\"; else : > \"\$tmp_env\"; fi; printf \"JWT_SECRET=%s\\n\" \"\$JWT_SECRET\" >> \"\$tmp_env\"; mv \"\$tmp_env\" .env; aws ecr get-login-password --region \"\$AWS_REGION\" | sudo docker login --username AWS --password-stdin \"\$ECR_REGISTRY\"; sudo docker-compose pull backend; sudo docker-compose up -d backend'"; then
               exit 0
             fi
 

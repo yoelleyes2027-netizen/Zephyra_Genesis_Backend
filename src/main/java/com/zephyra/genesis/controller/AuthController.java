@@ -5,9 +5,8 @@ import com.zephyra.genesis.dto.LoginRequest;
 import com.zephyra.genesis.dto.RegisterRequest;
 import com.zephyra.genesis.service.AuthService;
 import com.zephyra.genesis.service.CajaService;
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
@@ -26,10 +25,18 @@ public class AuthController {
     private static final String TOKEN_COOKIE = "token";
     private final AuthService authService;
     private final CajaService cajaService;
+    private final boolean cookieSecure;
+    private final String cookieSameSite;
 
-    public AuthController(AuthService authService, CajaService cajaService) {
+    public AuthController(
+            AuthService authService,
+            CajaService cajaService,
+            @Value("${app.security.cookie-secure:true}") boolean cookieSecure,
+            @Value("${app.security.cookie-same-site:Strict}") String cookieSameSite) {
         this.authService = authService;
         this.cajaService = cajaService;
+        this.cookieSecure = cookieSecure;
+        this.cookieSameSite = cookieSameSite;
     }
 
     @PostMapping("/register")
@@ -83,7 +90,8 @@ public class AuthController {
         response.addHeader(HttpHeaders.SET_COOKIE, ResponseCookie.from(TOKEN_COOKIE, "")
                 .path("/")
                 .httpOnly(true)
-                .sameSite("Lax")
+                .secure(cookieSecure)
+                .sameSite(cookieSameSite)
                 .maxAge(0)
                 .build()
                 .toString());
@@ -94,7 +102,8 @@ public class AuthController {
         return ResponseCookie.from(TOKEN_COOKIE, token)
                 .path("/")
                 .httpOnly(true)
-                .sameSite("Lax")
+                .secure(cookieSecure)
+                .sameSite(cookieSameSite)
                 .maxAge(7 * 24 * 60 * 60)
                 .build();
     }

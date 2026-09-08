@@ -5,6 +5,8 @@ import com.zephyra.genesis.dto.AuthUserResponse;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -18,12 +20,23 @@ import java.util.Optional;
 @Service
 public class JwtService {
 
+    private static final String SECRETO_POR_DEFECTO = "change-me-change-me-change-me-change-me";
+    private static final int LARGO_MINIMO_SECRETO = 32;
+    private static final Logger log = LoggerFactory.getLogger(JwtService.class);
+
     private final SecretKey secretKey;
     private final long expirationMinutes;
 
     public JwtService(
             @Value("${app.jwt.secret:change-me-change-me-change-me-change-me}") String secret,
             @Value("${app.jwt.expiration-minutes:10080}") long expirationMinutes) {
+        if (secret == null || secret.getBytes(StandardCharsets.UTF_8).length < LARGO_MINIMO_SECRETO) {
+            throw new IllegalStateException(
+                    "app.jwt.secret debe tener al menos " + LARGO_MINIMO_SECRETO + " caracteres para firmar tokens de forma segura.");
+        }
+        if (SECRETO_POR_DEFECTO.equals(secret)) {
+            log.error("JWT_SECRET no fue configurado: se esta usando el valor por defecto. Configuralo antes de exponer la app.");
+        }
         this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.expirationMinutes = expirationMinutes;
     }
