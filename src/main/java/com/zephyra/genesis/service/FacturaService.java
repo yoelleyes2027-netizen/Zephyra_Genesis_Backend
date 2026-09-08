@@ -1,7 +1,9 @@
 package com.zephyra.genesis.service;
 
 import com.zephyra.genesis.dto.DetalleFacturaRequest;
+import com.zephyra.genesis.dto.DetalleFacturaRemitoResponse;
 import com.zephyra.genesis.dto.FacturaRequest;
+import com.zephyra.genesis.dto.FacturaRemitoResponse;
 import com.zephyra.genesis.dto.FacturaResponse;
 import com.zephyra.genesis.entity.DetalleFactura;
 import com.zephyra.genesis.entity.FacturaEntity;
@@ -17,6 +19,9 @@ import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -110,6 +115,31 @@ public class FacturaService {
         }
     }
 
+    @Transactional(readOnly = true)
+    public List<FacturaRemitoResponse> buscarParaRemito(Long usuarioId, String nroSerie, Long proveedorId, LocalDate fecha) {
+        UsuarioEntity usuario = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado."));
+
+        if (usuario.getRol() != ROL.ADMIN && usuario.getRol() != ROL.RECEPCION) {
+            throw new IllegalArgumentException("Solo usuarios admin o recepcion pueden buscar facturas para remito.");
+        }
+
+        if (nroSerie != null && !nroSerie.isBlank()) {
+            List<FacturaEntity> facturas = facturaRepository.findByNroSerieIgnoreCase(nroSerie.trim());
+            return facturas.stream().map(this::toRemitoResponse).toList();
+        }
+
+        if (proveedorId == null || fecha == null) {
+            throw new IllegalArgumentException("Para buscar por fecha debes indicar proveedor y fecha.");
+        }
+
+        List<FacturaEntity> facturasProveedor = facturaRepository.findByProveedor_Id(proveedorId);
+        return facturasProveedor.stream()
+                .filter((factura) -> fecha.equals(fechaReferencia(factura)))
+                .map(this::toRemitoResponse)
+                .toList();
+    }
+
     private void validarRequest(FacturaRequest request) {
         if (request == null || request.proveedorId() == null || request.tipoMoneda() == null
                 || request.detalles() == null || request.detalles().isEmpty()) {
@@ -142,5 +172,33 @@ public class FacturaService {
                 factura.getFechaCreacion(),
                 factura.getMontoTotal(),
                 factura.getTipoMoneda().name());
+    }
+
+    private FacturaRemitoResponse toRemitoResponse(FacturaEntity factura) {
+        List<DetalleFacturaRemitoResponse> detalles = factura.getDetallesFactura().stream()
+                .map((detalle) -> new DetalleFacturaRemitoResponse(
+                        detalle.getProducto().getId(),
+                        detalle.getProducto().getDescripcion(),
+                        detalle.getCantidad(),
+                        detalle.getPrecioCompra()))
+                .toList();
+
+        return new FacturaRemitoResponse(
+                factura.getId(),
+                factura.getNroFactura(),
+                factura.getNroSerie(),
+                factura.getFechaEmision(),
+                factura.getFechaCreacion(),
+                factura.getProveedor().getId(),
+                factura.getProveedor().getRazonSocial(),
+                detalles);
+    }
+
+    private LocalDate fechaReferencia(FacturaEntity factura) {
+        Date fecha = factura.getFechaEmision() != null ? factura.getFechaEmision() : factura.getFechaCreacion();
+        if (fecha == null) {
+            return null;
+        }
+        return Instant.ofEpochMilli(fecha.getTime()).atZone(ZoneId.systemDefault()).toLocalDate();
     }
 }
