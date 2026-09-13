@@ -61,6 +61,10 @@ public class CajaService {
             throw new IllegalStateException("Ya hay un día iniciado. Debes cerrar el día actual antes de iniciar uno nuevo.");
         }
 
+        if (ultimaCajaGlobal != null && ultimaCajaGlobal.getFechaInicio() != null) {
+            facturaService.actualizarPreciosCompraDesde(ultimaCajaGlobal.getFechaInicio());
+        }
+
         double cotizacionUsdUyu = monedasService.obtenerValorUsdUYUDesdeApi();
         CajaGlobalEntity cajaGlobal = new CajaGlobalEntity(new Date());
         cajaGlobal.setCotizacionUsdUyuInicio(cotizacionUsdUyu);
