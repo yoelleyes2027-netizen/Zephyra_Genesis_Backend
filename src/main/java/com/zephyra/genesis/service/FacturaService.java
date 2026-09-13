@@ -195,6 +195,10 @@ public class FacturaService {
                         + " no puede superar lo registrado en la factura.");
             }
 
+            ProductoEntity producto = detalleFactura.getProducto();
+            producto.setStock(producto.getStock() - item.cantidad());
+            productoRepository.save(producto);
+
             cantidadTotal += item.cantidad();
         }
 
