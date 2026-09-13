@@ -194,10 +194,6 @@ public class FacturaService {
             }
 
             ProductoEntity producto = detalleFactura.getProducto();
-            if (producto.getStock() < item.cantidad()) {
-                throw new IllegalArgumentException("Stock insuficiente para " + producto.getDescripcion() + ".");
-            }
-
             producto.setStock(producto.getStock() - item.cantidad());
             productosAActualizar.add(producto);
             cantidadTotal += item.cantidad();
