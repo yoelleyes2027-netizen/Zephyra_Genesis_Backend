@@ -34,6 +34,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 @Service
@@ -166,9 +167,7 @@ public class FacturaService {
         FacturaNormalEntity factura = facturaRepository.findById(request.facturaId())
                 .orElseThrow(() -> new IllegalArgumentException("Factura no encontrada."));
 
-        if (remitoRepository.existsByFacturaOrigen_Id(factura.getId())) {
-            throw new IllegalArgumentException("La factura ya tiene un remito emitido.");
-        }
+        Optional<RemitoEntity> remitoExistente = remitoRepository.findByFacturaOrigen_Id(factura.getId());
 
         Map<Long, DetalleFactura> detallePorProducto = new HashMap<>();
         for (DetalleFactura detalleFactura : factura.getDetallesFactura()) {
@@ -176,7 +175,6 @@ public class FacturaService {
         }
 
         Set<Long> productosVistos = new HashSet<>();
-        List<ProductoEntity> productosAActualizar = new ArrayList<>();
         int cantidadTotal = 0;
 
         for (RemitoItemRequest item : request.detalles()) {
@@ -197,18 +195,11 @@ public class FacturaService {
                         + " no puede superar lo registrado en la factura.");
             }
 
-            ProductoEntity producto = detalleFactura.getProducto();
-            producto.setStock(producto.getStock() - item.cantidad());
-            productosAActualizar.add(producto);
             cantidadTotal += item.cantidad();
         }
 
         if (cantidadTotal <= 0) {
             throw new IllegalArgumentException("El remito debe tener al menos una unidad a emitir.");
-        }
-
-        for (ProductoEntity producto : productosAActualizar) {
-            productoRepository.save(producto);
         }
 
         Date ahora = new Date();
@@ -219,16 +210,17 @@ public class FacturaService {
             })
             .reduce(0f, Float::sum);
 
-        RemitoEntity remito = new RemitoEntity();
-        remito.setFechaCreacion(ahora);
+        RemitoEntity remito = remitoExistente.orElseGet(RemitoEntity::new);
+        if (remito.getId() == null) {
+            remito.setFechaCreacion(ahora);
+            remito.setNroSerie(null);
+        }
         remito.setFechaEmision(ahora);
         remito.setTipoMoneda(factura.getTipoMoneda());
         remito.setMontoTotal(montoTotalRemito);
-        remito.setNroSerie(null);
         remito.setProveedor(factura.getProveedor());
         remito.setUsuario(usuario);
         remito.setFacturaOrigen(factura);
-        remito.setFechaEmisionRemito(ahora);
         RemitoEntity remitoGuardado = remitoRepository.save(remito);
 
         return new RemitoResponse(

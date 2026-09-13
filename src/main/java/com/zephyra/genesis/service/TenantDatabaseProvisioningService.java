@@ -311,11 +311,11 @@ public class TenantDatabaseProvisioningService {
                     statement.executeUpdate("""
                         CREATE TABLE IF NOT EXISTS remito (
                         id BIGINT PRIMARY KEY REFERENCES factura(id),
-                        factura_origen_id BIGINT NOT NULL REFERENCES factura_normal(id),
-                        fecha_emision_remito TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                        factura_origen_id BIGINT NOT NULL REFERENCES factura_normal(id)
                         )
                         """);
                     statement.executeUpdate("CREATE UNIQUE INDEX IF NOT EXISTS ux_remito_factura_origen_id ON remito(factura_origen_id)");
+                    statement.executeUpdate("ALTER TABLE remito DROP COLUMN IF EXISTS fecha_emision_remito");
                     statement.executeUpdate("ALTER TABLE factura DROP COLUMN IF EXISTS remito");
                     statement.executeUpdate("ALTER TABLE factura DROP COLUMN IF EXISTS remito_realizado");
 
