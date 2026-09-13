@@ -9,7 +9,8 @@ ON CONFLICT (id) DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS remito (
     id BIGINT PRIMARY KEY REFERENCES factura(id),
-    factura_origen_id BIGINT NOT NULL REFERENCES factura_normal(id)
+    factura_origen_id BIGINT NOT NULL REFERENCES factura_normal(id),
+    fecha_emision_remito TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS ux_remito_factura_origen_id ON remito(factura_origen_id);
