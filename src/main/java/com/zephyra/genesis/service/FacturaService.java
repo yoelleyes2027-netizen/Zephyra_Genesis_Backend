@@ -195,6 +195,7 @@ public class FacturaService {
                         + " no puede superar lo registrado en la factura.");
             }
 
+            detalleFactura.setCantidad(detalleFactura.getCantidad() - item.cantidad());
             cantidadTotal += item.cantidad();
         }
 
