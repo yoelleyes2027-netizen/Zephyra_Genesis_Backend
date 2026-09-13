@@ -5,6 +5,9 @@ import com.zephyra.genesis.dto.DetalleFacturaRemitoResponse;
 import com.zephyra.genesis.dto.FacturaRequest;
 import com.zephyra.genesis.dto.FacturaRemitoResponse;
 import com.zephyra.genesis.dto.FacturaResponse;
+import com.zephyra.genesis.dto.RemitoItemRequest;
+import com.zephyra.genesis.dto.RemitoRequest;
+import com.zephyra.genesis.dto.RemitoResponse;
 import com.zephyra.genesis.entity.DetalleFactura;
 import com.zephyra.genesis.entity.FacturaEntity;
 import com.zephyra.genesis.entity.ProductoEntity;
@@ -22,9 +25,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Service
@@ -138,6 +144,82 @@ public class FacturaService {
                 .filter((factura) -> fecha.equals(fechaReferencia(factura)))
                 .map(this::toRemitoResponse)
                 .toList();
+    }
+
+    @Transactional
+    public RemitoResponse emitirRemito(Long usuarioId, RemitoRequest request) {
+        UsuarioEntity usuario = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado."));
+
+        if (usuario.getRol() != ROL.ADMIN && usuario.getRol() != ROL.RECEPCION) {
+            throw new IllegalArgumentException("Solo usuarios admin o recepcion pueden emitir remitos.");
+        }
+
+        if (request == null || request.facturaId() == null || request.detalles() == null || request.detalles().isEmpty()) {
+            throw new IllegalArgumentException("Debes indicar factura y al menos un producto para emitir remito.");
+        }
+
+        FacturaEntity factura = facturaRepository.findById(request.facturaId())
+                .orElseThrow(() -> new IllegalArgumentException("Factura no encontrada."));
+
+        if (factura.isRemitoRealizado()) {
+            throw new IllegalArgumentException("La factura ya tiene un remito emitido.");
+        }
+
+        Map<Long, DetalleFactura> detallePorProducto = new HashMap<>();
+        for (DetalleFactura detalleFactura : factura.getDetallesFactura()) {
+            detallePorProducto.put(detalleFactura.getProducto().getId(), detalleFactura);
+        }
+
+        Set<Long> productosVistos = new HashSet<>();
+        List<ProductoEntity> productosAActualizar = new ArrayList<>();
+        int cantidadTotal = 0;
+
+        for (RemitoItemRequest item : request.detalles()) {
+            if (item == null || item.productoId() == null || item.cantidad() == null || item.cantidad() <= 0) {
+                throw new IllegalArgumentException("Cada producto del remito debe tener productoId y cantidad mayor a 0.");
+            }
+            if (!productosVistos.add(item.productoId())) {
+                throw new IllegalArgumentException("No se puede repetir un producto dentro del remito.");
+            }
+
+            DetalleFactura detalleFactura = detallePorProducto.get(item.productoId());
+            if (detalleFactura == null) {
+                throw new IllegalArgumentException("El producto " + item.productoId() + " no pertenece a la factura seleccionada.");
+            }
+
+            if (item.cantidad() > detalleFactura.getCantidad()) {
+                throw new IllegalArgumentException("La cantidad para " + detalleFactura.getProducto().getDescripcion()
+                        + " no puede superar lo registrado en la factura.");
+            }
+
+            ProductoEntity producto = detalleFactura.getProducto();
+            if (producto.getStock() < item.cantidad()) {
+                throw new IllegalArgumentException("Stock insuficiente para " + producto.getDescripcion() + ".");
+            }
+
+            producto.setStock(producto.getStock() - item.cantidad());
+            productosAActualizar.add(producto);
+            cantidadTotal += item.cantidad();
+        }
+
+        if (cantidadTotal <= 0) {
+            throw new IllegalArgumentException("El remito debe tener al menos una unidad a emitir.");
+        }
+
+        for (ProductoEntity producto : productosAActualizar) {
+            productoRepository.save(producto);
+        }
+
+        factura.setRemito(true);
+        factura.setRemitoRealizado(true);
+        facturaRepository.save(factura);
+
+        return new RemitoResponse(
+                factura.getId(),
+                factura.getNroFactura(),
+                factura.isRemitoRealizado(),
+                cantidadTotal);
     }
 
     private void validarRequest(FacturaRequest request) {
