@@ -306,6 +306,19 @@ public class TenantDatabaseProvisioningService {
                     )
                     """);
 
+                    statement.executeUpdate("CREATE TABLE IF NOT EXISTS factura_normal (id BIGINT PRIMARY KEY REFERENCES factura(id))");
+                    statement.executeUpdate("INSERT INTO factura_normal (id) SELECT id FROM factura ON CONFLICT (id) DO NOTHING");
+                    statement.executeUpdate("""
+                        CREATE TABLE IF NOT EXISTS remito (
+                        id BIGINT PRIMARY KEY REFERENCES factura(id),
+                        factura_origen_id BIGINT NOT NULL REFERENCES factura_normal(id),
+                        fecha_emision_remito TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                        )
+                        """);
+                    statement.executeUpdate("CREATE UNIQUE INDEX IF NOT EXISTS ux_remito_factura_origen_id ON remito(factura_origen_id)");
+                    statement.executeUpdate("ALTER TABLE factura DROP COLUMN IF EXISTS remito");
+                    statement.executeUpdate("ALTER TABLE factura DROP COLUMN IF EXISTS remito_realizado");
+
             statement.executeUpdate("ALTER TABLE detalle_ticket ADD COLUMN IF NOT EXISTS precio_unitario REAL");
             if (columnExists(connection, "detalle_ticket", "preciounitario")) {
                 statement.executeUpdate("UPDATE detalle_ticket SET precio_unitario = COALESCE(precio_unitario, preciounitario) WHERE precio_unitario IS NULL");

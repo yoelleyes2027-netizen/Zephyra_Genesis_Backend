@@ -4,6 +4,8 @@ import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.Inheritance;
+import jakarta.persistence.InheritanceType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
@@ -19,22 +21,17 @@ import java.util.List;
 @Entity
 @Table(name = "factura")
 @PrimaryKeyJoinColumn(name = "id")
-public class FacturaEntity extends DocumentoEntity {
+@Inheritance(strategy = InheritanceType.JOINED)
+public abstract class FacturaEntity extends DocumentoEntity {
     @Column(name = "fecha_emision")
     @Temporal(TemporalType.TIMESTAMP)
     private Date fechaEmision;
-
-    @Column(nullable = false)
-    private boolean remito;
 
     @Column(name = "nro_factura", unique = true, insertable = false, updatable = false)
     private Integer nroFactura;
 
     @Column(name = "nro_serie", unique = true)
     private String nroSerie;
-
-    @Column(name = "remito_realizado", nullable = false)
-    private boolean remitoRealizado;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "proveedor_id", nullable = false)
@@ -51,20 +48,12 @@ public class FacturaEntity extends DocumentoEntity {
         return fechaEmision;
     }
 
-    public boolean isRemito() {
-        return remito;
-    }
-
     public Integer getNroFactura() {
         return nroFactura;
     }
 
     public String getNroSerie() {
         return nroSerie;
-    }
-
-    public boolean isRemitoRealizado() {
-        return remitoRealizado;
     }
 
     public ProveedorEntity getProveedor() {
@@ -83,16 +72,8 @@ public class FacturaEntity extends DocumentoEntity {
         this.fechaEmision = fechaEmision;
     }
 
-    public void setRemito(boolean remito) {
-        this.remito = remito;
-    }
-
     public void setNroSerie(String nroSerie) {
         this.nroSerie = nroSerie;
-    }
-
-    public void setRemitoRealizado(boolean remitoRealizado) {
-        this.remitoRealizado = remitoRealizado;
     }
 
     public void setProveedor(ProveedorEntity proveedor) {

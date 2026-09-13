@@ -1,8 +1,8 @@
 package com.zephyra.genesis.dto;
 
 public record RemitoResponse(
-        Long facturaId,
+        Long remitoId,
+        Long facturaOrigenId,
         Integer nroFactura,
-        Boolean remitoRealizado,
         Integer cantidadTotalEmitida) {
 }

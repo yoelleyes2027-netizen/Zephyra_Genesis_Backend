@@ -10,13 +10,16 @@ import com.zephyra.genesis.dto.RemitoRequest;
 import com.zephyra.genesis.dto.RemitoResponse;
 import com.zephyra.genesis.entity.DetalleFactura;
 import com.zephyra.genesis.entity.FacturaEntity;
+import com.zephyra.genesis.entity.FacturaNormalEntity;
 import com.zephyra.genesis.entity.ProductoEntity;
 import com.zephyra.genesis.entity.ProveedorEntity;
+import com.zephyra.genesis.entity.RemitoEntity;
 import com.zephyra.genesis.entity.ROL;
 import com.zephyra.genesis.entity.UsuarioEntity;
 import com.zephyra.genesis.repository.FacturaRepository;
 import com.zephyra.genesis.repository.ProductoRepository;
 import com.zephyra.genesis.repository.ProveedorRepository;
+import com.zephyra.genesis.repository.RemitoRepository;
 import com.zephyra.genesis.repository.UsuarioRepository;
 import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Service;
@@ -39,6 +42,7 @@ public class FacturaService {
     private final FacturaRepository facturaRepository;
     private final ProveedorRepository proveedorRepository;
     private final ProductoRepository productoRepository;
+    private final RemitoRepository remitoRepository;
     private final UsuarioRepository usuarioRepository;
     private final EntityManager entityManager;
 
@@ -46,11 +50,13 @@ public class FacturaService {
             FacturaRepository facturaRepository,
             ProveedorRepository proveedorRepository,
             ProductoRepository productoRepository,
+            RemitoRepository remitoRepository,
             UsuarioRepository usuarioRepository,
             EntityManager entityManager) {
         this.facturaRepository = facturaRepository;
         this.proveedorRepository = proveedorRepository;
         this.productoRepository = productoRepository;
+        this.remitoRepository = remitoRepository;
         this.usuarioRepository = usuarioRepository;
         this.entityManager = entityManager;
     }
@@ -66,12 +72,10 @@ public class FacturaService {
 
         ProveedorEntity proveedor = proveedorRepository.findById(request.proveedorId())
                 .orElseThrow(() -> new IllegalArgumentException("Proveedor no encontrado."));
-        FacturaEntity factura = new FacturaEntity();
+        FacturaNormalEntity factura = new FacturaNormalEntity();
         factura.setFechaCreacion(new Date());
         factura.setTipoMoneda(request.tipoMoneda());
         factura.setFechaEmision(null);
-        factura.setRemito(false);
-        factura.setRemitoRealizado(false);
         factura.setNroSerie(normalizarNroSerie(request.nroSerie()));
         factura.setProveedor(proveedor);
         factura.setUsuario(usuario);
@@ -101,7 +105,7 @@ public class FacturaService {
         }
 
         factura.setMontoTotal(montoTotal);
-        FacturaEntity facturaGuardada = facturaRepository.save(factura);
+        FacturaNormalEntity facturaGuardada = facturaRepository.save(factura);
         entityManager.flush();
         entityManager.refresh(facturaGuardada);
         return toResponse(facturaGuardada);
@@ -112,8 +116,8 @@ public class FacturaService {
         if (fechaInicio == null) {
             return;
         }
-        List<FacturaEntity> facturas = facturaRepository.findByFechaCreacionGreaterThanEqualOrderByFechaCreacionAsc(fechaInicio);
-        for (FacturaEntity factura : facturas) {
+        List<FacturaNormalEntity> facturas = facturaRepository.findByFechaCreacionGreaterThanEqualOrderByFechaCreacionAsc(fechaInicio);
+        for (FacturaNormalEntity factura : facturas) {
             for (DetalleFactura detalle : factura.getDetallesFactura()) {
                 ProductoEntity producto = detalle.getProducto();
                 producto.setPrecioCompra(detalle.getPrecioCompra());
@@ -131,7 +135,7 @@ public class FacturaService {
         }
 
         if (nroSerie != null && !nroSerie.isBlank()) {
-            List<FacturaEntity> facturas = facturaRepository.findByNroSerieIgnoreCase(nroSerie.trim());
+            List<FacturaNormalEntity> facturas = facturaRepository.findByNroSerieIgnoreCase(nroSerie.trim());
             return facturas.stream().map(this::toRemitoResponse).toList();
         }
 
@@ -139,7 +143,7 @@ public class FacturaService {
             throw new IllegalArgumentException("Para buscar por fecha debes indicar proveedor y fecha.");
         }
 
-        List<FacturaEntity> facturasProveedor = facturaRepository.findByProveedor_Id(proveedorId);
+        List<FacturaNormalEntity> facturasProveedor = facturaRepository.findByProveedor_Id(proveedorId);
         return facturasProveedor.stream()
                 .filter((factura) -> fecha.equals(fechaReferencia(factura)))
                 .map(this::toRemitoResponse)
@@ -159,10 +163,10 @@ public class FacturaService {
             throw new IllegalArgumentException("Debes indicar factura y al menos un producto para emitir remito.");
         }
 
-        FacturaEntity factura = facturaRepository.findById(request.facturaId())
+        FacturaNormalEntity factura = facturaRepository.findById(request.facturaId())
                 .orElseThrow(() -> new IllegalArgumentException("Factura no encontrada."));
 
-        if (factura.isRemitoRealizado()) {
+        if (remitoRepository.existsByFacturaOrigen_Id(factura.getId())) {
             throw new IllegalArgumentException("La factura ya tiene un remito emitido.");
         }
 
@@ -207,14 +211,30 @@ public class FacturaService {
             productoRepository.save(producto);
         }
 
-        factura.setRemito(true);
-        factura.setRemitoRealizado(true);
-        facturaRepository.save(factura);
+        Date ahora = new Date();
+        float montoTotalRemito = request.detalles().stream()
+            .map((item) -> {
+                DetalleFactura detalle = detallePorProducto.get(item.productoId());
+                return item.cantidad() * detalle.getPrecioCompra();
+            })
+            .reduce(0f, Float::sum);
+
+        RemitoEntity remito = new RemitoEntity();
+        remito.setFechaCreacion(ahora);
+        remito.setFechaEmision(ahora);
+        remito.setTipoMoneda(factura.getTipoMoneda());
+        remito.setMontoTotal(montoTotalRemito);
+        remito.setNroSerie(null);
+        remito.setProveedor(factura.getProveedor());
+        remito.setUsuario(usuario);
+        remito.setFacturaOrigen(factura);
+        remito.setFechaEmisionRemito(ahora);
+        RemitoEntity remitoGuardado = remitoRepository.save(remito);
 
         return new RemitoResponse(
-                factura.getId(),
+            remitoGuardado.getId(),
+            factura.getId(),
                 factura.getNroFactura(),
-                factura.isRemitoRealizado(),
                 cantidadTotal);
     }
 
