@@ -76,7 +76,7 @@ public class FacturaService {
         FacturaNormalEntity factura = new FacturaNormalEntity();
         factura.setFechaCreacion(new Date());
         factura.setTipoMoneda(request.tipoMoneda());
-        factura.setFechaEmision(null);
+        factura.setFechaEmision(aDate(request.fechaEmision()));
         factura.setNroSerie(normalizarNroSerie(request.nroSerie()));
         factura.setProveedor(proveedor);
         factura.setUsuario(usuario);
@@ -256,6 +256,13 @@ public class FacturaService {
             return null;
         }
         return nroSerie.trim();
+    }
+
+    private Date aDate(LocalDate localDate) {
+        if (localDate == null) {
+            return null;
+        }
+        return Date.from(localDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
     }
 
     private FacturaResponse toResponse(FacturaEntity factura) {
