@@ -27,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Date;
@@ -39,6 +40,8 @@ import java.util.Set;
 
 @Service
 public class FacturaService {
+
+    private static final ZoneId ZONA_URUGUAY = ZoneId.of("America/Montevideo");
 
     private final FacturaRepository facturaRepository;
     private final ProveedorRepository proveedorRepository;
@@ -262,7 +265,8 @@ public class FacturaService {
         if (localDate == null) {
             return null;
         }
-        return Date.from(localDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
+        LocalTime horaActualUruguay = LocalTime.now(ZONA_URUGUAY).withNano(0);
+        return Date.from(localDate.atTime(horaActualUruguay).atZone(ZONA_URUGUAY).toInstant());
     }
 
     private FacturaResponse toResponse(FacturaEntity factura) {
@@ -300,6 +304,6 @@ public class FacturaService {
         if (fecha == null) {
             return null;
         }
-        return Instant.ofEpochMilli(fecha.getTime()).atZone(ZoneId.systemDefault()).toLocalDate();
+        return Instant.ofEpochMilli(fecha.getTime()).atZone(ZONA_URUGUAY).toLocalDate();
     }
 }
