@@ -9,6 +9,7 @@ import com.zephyra.genesis.dto.RemitoItemRequest;
 import com.zephyra.genesis.dto.RemitoRequest;
 import com.zephyra.genesis.dto.RemitoResponse;
 import com.zephyra.genesis.entity.DetalleFactura;
+import com.zephyra.genesis.entity.DetalleFacturaId;
 import com.zephyra.genesis.entity.FacturaEntity;
 import com.zephyra.genesis.entity.FacturaNormalEntity;
 import com.zephyra.genesis.entity.ProductoEntity;
@@ -179,6 +180,7 @@ public class FacturaService {
 
         Set<Long> productosVistos = new HashSet<>();
         int cantidadTotal = 0;
+        float montoTotalRemito = 0f;
 
         for (RemitoItemRequest item : request.detalles()) {
             if (item == null || item.productoId() == null || item.cantidad() == null || item.cantidad() <= 0) {
@@ -198,11 +200,8 @@ public class FacturaService {
                         + " no puede superar lo registrado en la factura.");
             }
 
-            ProductoEntity producto = detalleFactura.getProducto();
-            producto.setStock(producto.getStock() - item.cantidad());
-            productoRepository.save(producto);
-
             cantidadTotal += item.cantidad();
+            montoTotalRemito += item.cantidad() * detalleFactura.getProducto().getPrecioCompra();
         }
 
         if (cantidadTotal <= 0) {
@@ -210,13 +209,6 @@ public class FacturaService {
         }
 
         Date ahora = new Date();
-        float montoTotalRemito = request.detalles().stream()
-            .map((item) -> {
-                DetalleFactura detalle = detallePorProducto.get(item.productoId());
-                return item.cantidad() * detalle.getPrecioCompra();
-            })
-            .reduce(0f, Float::sum);
-
         RemitoEntity remito = remitoExistente.orElseGet(RemitoEntity::new);
         if (remito.getId() == null) {
             remito.setFechaCreacion(ahora);
@@ -229,6 +221,31 @@ public class FacturaService {
         remito.setUsuario(usuario);
         remito.setFacturaOrigen(factura);
         RemitoEntity remitoGuardado = remitoRepository.save(remito);
+        entityManager.flush();
+
+        // Al reemitir se reemplazan las líneas previas y se revierte su descuento de stock.
+        for (DetalleFactura detalleAnterior : new ArrayList<>(remitoGuardado.getDetallesFactura())) {
+            ProductoEntity productoAnterior = detalleAnterior.getProducto();
+            productoAnterior.setStock(productoAnterior.getStock() + detalleAnterior.getCantidad());
+            productoRepository.save(productoAnterior);
+        }
+        remitoGuardado.getDetallesFactura().clear();
+        entityManager.flush();
+
+        for (RemitoItemRequest item : request.detalles()) {
+            ProductoEntity producto = detallePorProducto.get(item.productoId()).getProducto();
+            producto.setStock(producto.getStock() - item.cantidad());
+            productoRepository.save(producto);
+
+            DetalleFactura detalleRemito = new DetalleFactura();
+            detalleRemito.setId(new DetalleFacturaId(remitoGuardado.getId(), producto.getId()));
+            detalleRemito.setFactura(remitoGuardado);
+            detalleRemito.setProducto(producto);
+            detalleRemito.setCantidad(item.cantidad());
+            detalleRemito.setPrecioCompra(producto.getPrecioCompra());
+            remitoGuardado.getDetallesFactura().add(detalleRemito);
+        }
+        remitoGuardado = remitoRepository.save(remitoGuardado);
 
         return new RemitoResponse(
             remitoGuardado.getId(),
